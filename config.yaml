@@ -1,0 +1,8 @@
+GENCODE_GTF: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/ICGC_MC3/Data/gencode.v19.annotation.gtf.gz 
+SAMPLES:
+  exome_broadbed: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/ICGC_MC3/TCGAonlyData/exome.broadbed.maf
+  genome_broadbed: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/ICGC_MC3/TCGAonlyData/genome.broadbed.maf
+
+EXOME_SAMPLE_LIST: ./exome_samples.list
+GENOME_SAMPLE_LIST: ./genome_samples.list
+OVERLAPPED_SAMPLE_INFO: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/ICGC_MC3/Map/exome.genome.olap.stats.txt
