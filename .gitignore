@@ -1,0 +1,7 @@
+.python-version
+.snakemake
+Snakefile.copied
+
+# output folders
+annotations/
+processed_data/
