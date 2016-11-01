@@ -45,7 +45,7 @@ rule gencode_bed_protein_coding_only:
 
 def map_maf_filepath(wildcards):
     maf_name = wildcards['name']
-    # replace all `.` in the file name with `_` 
+    # replace all `.` in the file name with `_`
     config_entry = maf_name.replace('.', '_')
     maf_filepath = config['SAMPLES'][config_entry]
     return maf_filepath
@@ -53,11 +53,16 @@ def map_maf_filepath(wildcards):
 
 rule temp_link_partially_processed_maf:
     """Link the intermediate MAFs by looking up their filepaths in config
-    
+
     This rule use a customized function to look up in config entries under
     SAMPLES to find the corresponding file path, which usually relies in the
     original analysis folders.
-    
+
+    For example, if input maf is ``exome.broadbed.maf``, it looks up the
+    ``config['SAMPLES']['exome_broadbed']`` in the config file, and soft link
+    the file under ``processed_data/``. Note that all dots in the filename are
+    converted to underscore to reduce ambiguity.
+
     This rule should be removed once all processing steps have been ported to
     Snakemake.
     """
@@ -80,7 +85,7 @@ rule maf_protein_coding_only:
 
 rule split_exome_maf:
     input: 'processed_data/exome.broadbed.gaf4bed.exon.maf'
-    output: 
+    output:
         expand(
             'processed_data/GAFexon/{sample_id}.exome.broadgaf.maf',
             sample_id=EXOME_SAMPLE_IDS
@@ -95,7 +100,7 @@ rule split_exome_maf:
 
 rule split_genome_maf:
     input: 'processed_data/genome.broadbed.gaf4bed.exon.maf'
-    output: 
+    output:
         expand(
             'processed_data/GAFexon/{sample_id}.genome.broadgaf.maf',
             sample_id=GENOME_SAMPLE_IDS
@@ -106,3 +111,15 @@ rule split_genome_maf:
             print > "processed_data/GAFexon/"$46".genome.broadgaf.maf"
         }}' {input}
         """
+
+
+rule remove_exome_wigCovg:
+    #This takes the split MAFs and removes any variants not in EXOME wig
+    #files from exome samples ids
+
+
+
+rule remove_genome_wigCovg:
+    #This takes the split MAFs and removes any variants not in EXOME wig
+    #files from genome samples ids
+
