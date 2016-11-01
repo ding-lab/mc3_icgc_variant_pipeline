@@ -21,14 +21,6 @@ rule all:
             'processed_data/{seq_type}.broadbed.gafe.wigs.rep.maf',
             seq_type=['exome', 'genome']
         )
-        # expand(
-        #     'processed_data/GAFexonReduced/{exome_id}.broadgaf.wig.exome.reduced.maf',
-        #     exome_id=EXOME_SAMPLE_IDS_TO_GENOME.keys(),
-        # ),
-        # expand(
-        #     'processed_data/GAFexonReduced/{genome_id}.broadgaf.wig.genome.reduced.maf',
-        #     genome_id=GENOME_SAMPLE_IDS_TO_EXOME.keys(),
-        # ),
 
 
 rule gencode_bed_protein_coding_only:
