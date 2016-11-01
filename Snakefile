@@ -18,13 +18,17 @@ with open(config['OVERLAPPED_SAMPLE_INFO']) as f:
 rule all:
     input:
         expand(
-            'processed_data/GAFexonReduced/{exome_id}.broadgaf.wig.exome.reduced.maf',
-            exome_id=EXOME_SAMPLE_IDS_TO_GENOME.keys(),
-        ),
-        expand(
-            'processed_data/GAFexonReduced/{genome_id}.broadgaf.wig.genome.reduced.maf',
-            genome_id=GENOME_SAMPLE_IDS_TO_EXOME.keys(),
-        ),
+            'processed_data/{seq_type}.broadbed.gafe.wigs.rep.maf',
+            seq_type=['exome', 'genome']
+        )
+        # expand(
+        #     'processed_data/GAFexonReduced/{exome_id}.broadgaf.wig.exome.reduced.maf',
+        #     exome_id=EXOME_SAMPLE_IDS_TO_GENOME.keys(),
+        # ),
+        # expand(
+        #     'processed_data/GAFexonReduced/{genome_id}.broadgaf.wig.genome.reduced.maf',
+        #     genome_id=GENOME_SAMPLE_IDS_TO_EXOME.keys(),
+        # ),
 
 
 rule gencode_bed_protein_coding_only:
@@ -72,6 +76,8 @@ rule temp_link_partially_processed_maf:
     """
     input: map_maf_filepath
     output: 'processed_data/{name}.maf'
+    wildcard_constraints:
+        name=r"[^/]+"
     shell:
         'ln -s {input} {output}'
 
@@ -137,6 +143,7 @@ rule reduce_exome_maf_low_coverage_wig:
         > {output}
         """
 
+
 def retrieve_exome_wig_bed(wildcards):
     # given genome sample id, return paired exome id
     exome_id = GENOME_SAMPLE_IDS_TO_EXOME[wildcards.genome_id]
@@ -144,6 +151,7 @@ def retrieve_exome_wig_bed(wildcards):
         config['WIG_BED_DIR'],
         '{exome_id}.bed'.format(exome_id=exome_id)
     ))
+
 
 rule reduce_genome_maf_low_coverage_wig:
     """
@@ -164,3 +172,36 @@ rule reduce_genome_maf_low_coverage_wig:
         awk -F"\t" '{{OFS = "\t"}} {{if($NF == 1) print $0}}' \
         > {output}
         """
+
+
+rule merge_exome_wig_reduced_exome_mafs:
+    input:
+        expand(
+            'processed_data/GAFexonReduced/{exome_id}.broadgaf.wig.exome.reduced.maf',
+            exome_id=EXOME_SAMPLE_IDS_TO_GENOME.keys(),
+        )
+    output:
+        'processed_data/exome.broadbed.gafe.wigs.maf'
+    shell:
+        "cat {input} > {output}"
+
+
+rule merge_exome_wig_reduced_genome_mafs:
+    input:
+        expand(
+            'processed_data/GAFexonReduced/{genome_id}.broadgaf.wig.genome.reduced.maf',
+            genome_id=GENOME_SAMPLE_IDS_TO_EXOME.keys(),
+        )
+    output:
+        'processed_data/genome.broadbed.gafe.wigs.maf'
+    shell:
+        "cat {input} > {output}"
+
+
+rule reduce_maf_low_genome_wig:
+    input:
+        maf='processed_data/{seq_type}.broadbed.gafe.wigs.maf',
+        genome_bed=config['FAKE_ICGC46_WIG_BED'],
+    output: 'processed_data/{seq_type}.broadbed.gafe.wigs.rep.maf'
+    shell:
+        "bedtools intersect -a {input.maf} -b {input.genome_bed} > {output}"

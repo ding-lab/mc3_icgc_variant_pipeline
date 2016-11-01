@@ -5,3 +5,4 @@ SAMPLES:
 
 OVERLAPPED_SAMPLE_INFO: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/ICGC_MC3/Map/exome.genome.olap.stats.txt
 WIG_BED_DIR: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/ICGC_MC3/CleanWigs/WigBeds
+FAKE_ICGC46_WIG_BED: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/ICGC_MC3/CleanWigs/fake_icgc46.wig.bed
