@@ -4,3 +4,4 @@ SAMPLES:
   genome_broadbed: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/ICGC_MC3/TCGAonlyData/genome.broadbed.maf
 
 OVERLAPPED_SAMPLE_INFO: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/ICGC_MC3/Map/exome.genome.olap.stats.txt
+WIG_BED_DIR: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/ICGC_MC3/CleanWigs/WigBeds

@@ -1,26 +1,30 @@
 configfile: 'config.yaml'
 
+from pathlib import Path
+
 GENCODE_PROTEIN_CODING_BED = 'annotations/gencode.proteincoding.known.gene.bed'
-EXOME_SAMPLE_IDS = []
-GENOME_SAMPLE_IDS = []
+EXOME_SAMPLE_IDS_TO_GENOME = {}
+GENOME_SAMPLE_IDS_TO_EXOME = {}
+
 
 with open(config['OVERLAPPED_SAMPLE_INFO']) as f:
     header = next(f)
     for line in f:
         exome_id, genome_id, *_ = line.rstrip().split(' ')
-        EXOME_SAMPLE_IDS.append(exome_id)
-        GENOME_SAMPLE_IDS.append(genome_id)
+        EXOME_SAMPLE_IDS_TO_GENOME[exome_id] = genome_id
+        GENOME_SAMPLE_IDS_TO_EXOME[genome_id] = exome_id
+
 
 rule all:
     input:
         expand(
-            'processed_data/GAFexon/{sample_id}.exome.broadgaf.maf',
-            sample_id=EXOME_SAMPLE_IDS,
+            'processed_data/GAFexonReduced/{exome_id}.broadgaf.wig.exome.reduced.maf',
+            exome_id=EXOME_SAMPLE_IDS_TO_GENOME.keys(),
         ),
         expand(
-            'processed_data/GAFexon/{sample_id}.genome.broadgaf.maf',
-            sample_id=GENOME_SAMPLE_IDS,
-        )
+            'processed_data/GAFexonReduced/{genome_id}.broadgaf.wig.genome.reduced.maf',
+            genome_id=GENOME_SAMPLE_IDS_TO_EXOME.keys(),
+        ),
 
 
 rule gencode_bed_protein_coding_only:
@@ -88,7 +92,7 @@ rule split_exome_maf:
     output:
         expand(
             'processed_data/GAFexon/{sample_id}.exome.broadgaf.maf',
-            sample_id=EXOME_SAMPLE_IDS
+            sample_id=EXOME_SAMPLE_IDS_TO_GENOME.keys()
         )
     shell:
         r"""
@@ -103,7 +107,7 @@ rule split_genome_maf:
     output:
         expand(
             'processed_data/GAFexon/{sample_id}.genome.broadgaf.maf',
-            sample_id=GENOME_SAMPLE_IDS
+            sample_id=GENOME_SAMPLE_IDS_TO_EXOME.keys()
         )
     shell:
         r"""
@@ -113,13 +117,50 @@ rule split_genome_maf:
         """
 
 
-rule remove_exome_wigCovg:
-    #This takes the split MAFs and removes any variants not in EXOME wig
-    #files from exome samples ids
+rule reduce_exome_maf_low_coverage_wig:
+    """
+    Take split exome MAF and remove any variants not in whole exome wig
+    (no sequencing coverage)
+    """
+    input:
+        exome_maf='processed_data/GAFexon/{exome_id}.exome.broadgaf.maf',
+        exome_wig_bed=str(Path(config['WIG_BED_DIR'], '{exome_id}.bed')),
+    output:
+        'processed_data/GAFexonReduced/{exome_id}.broadgaf.wig.exome.reduced.maf'
+    shell:
+        r"""
+        bedtools intersect \
+            -b {input.exome_wig_bed} \
+            -a {input.exome_maf} \
+            -wb | \
+        awk -F"\t" '{{OFS = "\t"}} {{if($NF == 1) print $0}}' \
+        > {output}
+        """
 
+def retrieve_exome_wig_bed(wildcards):
+    # given genome sample id, return paired exome id
+    exome_id = GENOME_SAMPLE_IDS_TO_EXOME[wildcards.genome_id]
+    return str(Path(
+        config['WIG_BED_DIR'],
+        '{exome_id}.bed'.format(exome_id=exome_id)
+    ))
 
-
-rule remove_genome_wigCovg:
-    #This takes the split MAFs and removes any variants not in EXOME wig
-    #files from genome samples ids
-
+rule reduce_genome_maf_low_coverage_wig:
+    """
+    Take split genome MAF and remove any variants not in whole exome wig
+    (no sequencing coverage)
+    """
+    input:
+        genome_maf='processed_data/GAFexon/{genome_id}.genome.broadgaf.maf',
+        exome_wig_bed=retrieve_exome_wig_bed,
+    output:
+        'processed_data/GAFexonReduced/{genome_id}.broadgaf.wig.genome.reduced.maf'
+    shell:
+        r"""
+        bedtools intersect \
+            -b {input.exome_wig_bed} \
+            -a {input.genome_maf} \
+            -wb | \
+        awk -F"\t" '{{OFS = "\t"}} {{if($NF == 1) print $0}}' \
+        > {output}
+        """
