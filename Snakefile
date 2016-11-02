@@ -137,7 +137,7 @@ rule reduce_exome_maf_low_coverage_wig:
 
 
 def retrieve_exome_wig_bed(wildcards):
-    # given genome sample id, return paired exome id
+    # Given the genome sample id, return the paired exome sample id
     exome_id = GENOME_SAMPLE_IDS_TO_EXOME[wildcards.genome_id]
     return str(Path(
         config['WIG_BED_DIR'],
@@ -146,10 +146,8 @@ def retrieve_exome_wig_bed(wildcards):
 
 
 rule reduce_genome_maf_low_coverage_wig:
-    """
-    Take split genome MAF and remove any variants not in whole exome wig
-    (no sequencing coverage)
-    """
+    # Take split genome MAF and remove any variants not in whole exome wig
+    # (no sequencing coverage)
     input:
         genome_maf='processed_data/GAFexon/{genome_id}.genome.broadgaf.maf',
         exome_wig_bed=retrieve_exome_wig_bed,
@@ -167,6 +165,7 @@ rule reduce_genome_maf_low_coverage_wig:
 
 
 rule merge_exome_wig_reduced_exome_mafs:
+    # Concatenate all the reduced exome MAFs
     input:
         expand(
             'processed_data/GAFexonReduced/{exome_id}.broadgaf.wig.exome.reduced.maf',
@@ -179,6 +178,7 @@ rule merge_exome_wig_reduced_exome_mafs:
 
 
 rule merge_exome_wig_reduced_genome_mafs:
+    # Concatenate all the reduced genome MAFs
     input:
         expand(
             'processed_data/GAFexonReduced/{genome_id}.broadgaf.wig.genome.reduced.maf',
@@ -191,6 +191,11 @@ rule merge_exome_wig_reduced_genome_mafs:
 
 
 rule reduce_maf_low_genome_wig:
+    # Remove variants from either sequeing type not covered in the whole genome
+    # wig e.g. no sequencing coverage in whole genome sequencing.
+    #
+    # Note that in whole genome sequencing we don't have the BAM(Wig) file for
+    # each paired sample, so we rely on a "pesudo" joint wig file.
     input:
         maf='processed_data/{seq_type}.broadbed.gafe.wigs.maf',
         genome_bed=config['FAKE_ICGC46_WIG_BED'],
