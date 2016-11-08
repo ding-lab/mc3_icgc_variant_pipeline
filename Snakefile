@@ -190,6 +190,14 @@ rule merge_exome_wig_reduced_genome_mafs:
         "cat {input} > {output}"
 
 
+rule genome_wig_to_bed:
+    # Convert the genome sequencing coverage WIG as BED format
+    input: config['FAKE_ICGC46_WIG']
+    output: 'processed_data/fake_icgc46.wig.bed'
+    shell:
+        "wig2bed --zero-indexed < {input} > {output}"
+
+
 rule reduce_maf_low_genome_wig:
     # Remove variants from either sequeing type not covered in the whole genome
     # wig e.g. no sequencing coverage in whole genome sequencing.
@@ -198,7 +206,7 @@ rule reduce_maf_low_genome_wig:
     # each paired sample, so we rely on a "pesudo" joint wig file.
     input:
         maf='processed_data/{seq_type}.broadbed.gafe.wigs.maf',
-        genome_bed=config['FAKE_ICGC46_WIG_BED'],
+        genome_bed='processed_data/fake_icgc46.wig.bed',
     output: 'processed_data/{seq_type}.broadbed.gafe.wigs.rep.maf'
     shell:
         "bedtools intersect -a {input.maf} -b {input.genome_bed} > {output}"
