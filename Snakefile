@@ -195,7 +195,10 @@ rule genome_wig_to_bed:
     input: config['FAKE_ICGC46_WIG']
     output: 'processed_data/fake_icgc46.wig.bed'
     shell:
-        "wig2bed --zero-indexed < {input} > {output}"
+        r"wig2bed --zero-indexed < {input} | "
+        # chr1 -> 1 naming conversion and remove non canonical chroms
+        r"sed -E -e 's/^chr([0-9]+|X|Y|M)/\1/g' -e '/^chr/d'> {output}"
+
 
 
 rule reduce_maf_low_genome_wig:
