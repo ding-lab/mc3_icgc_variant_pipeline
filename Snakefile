@@ -15,14 +15,6 @@ with open(config['OVERLAPPED_SAMPLE_INFO']) as f:
         GENOME_SAMPLE_IDS_TO_EXOME[genome_id] = exome_id
 
 
-rule all:
-    input:
-        expand(
-            'processed_data/{seq_type}.broadbed.gafe.wigs.rep.maf',
-            seq_type=['exome', 'genome']
-        )
-
-
 rule gencode_bed_protein_coding_only:
     # Create protein only region as BED file from GENCODE v19 annotation
     input: config['GENCODE_GTF']
@@ -213,3 +205,41 @@ rule reduce_maf_low_genome_wig:
     output: 'processed_data/{seq_type}.broadbed.gafe.wigs.rep.maf'
     shell:
         "bedtools intersect -a {input.maf} -b {input.genome_bed} > {output}"
+
+
+rule reduce_maf_low_genome_wig_uniq_snv:
+    # Uniqe and sort the MAF
+    input: 'processed_data/{seq_type}.broadbed.gafe.wigs.rep.maf'
+    output: 'processed_data/{seq_type}.broadbed.gafe.wigs.rep.snv.uniq.maf'
+    shell:
+        r"""
+        awk -F"\t" '{{if($2 == $3) print $0}}' {input} \
+            | sort -u | sort -k1,1 -k2,2n \
+            > {output}
+        """
+
+
+rule bdeolap_nchar:
+    # Overlapp
+    input: 
+        sample_mapping=config['OVERLAPPED_SAMPLE_INFO'],
+        py_script='scripts/bedolap.{nchar}.py',
+        exome_maf='processed_data/exome.broadbed.gafe.wigs.rep.snv.uniq.maf',
+        genome_maf='processed_data/genome.broadbed.gafe.wigs.rep.snv.uniq.maf',
+    output:  
+        'output/e.g.mymerge.{nchar}.maf'        
+    shell:
+        'python {py_script} {sample_mapping} {exome_maf} {genome_maf} > {output}'
+
+
+rule all:
+    input:
+        # expand(
+        #     'processed_data/{seq_type}.broadbed.gafe.wigs.rep.snv.uniq.maf',
+        #     seq_type=['exome', 'genome']
+        # )
+        expand(
+            'output/e.g.mymerge.{nchar}.maf',
+            nchar=['12char', '25char']
+        )
+
