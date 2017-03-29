@@ -1,6 +1,6 @@
 main() {
 	export PATH="/gscuser/lwang/miniconda3/envs/snake/bin:$PATH"
-	submit_to_bsub 4 4000 60 ./snakemake_bsub snakemake -p all
+	submit_to_bsub 8 16000 2880 ./snakemake_bsub snakemake -p all
 }
 
 echoerr() { printf "%s\n" "$*" >&2; }
