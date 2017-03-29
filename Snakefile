@@ -30,9 +30,11 @@ rule gencode_bed_protein_coding_only:
                     $11 == " gene_type \"protein_coding\""  \
                 )                                           \
                     print $1,$4,$5,$13                      \
-            }}' |                                           \
-        sed -E -e 's/^chr([0-9]+|X|Y|M)/\1/' > {output}
+            }}' > {output}
         """
+        #     }}' |                                           \
+        # sed -E -e 's/^chr([0-9]+|X|Y|M)/\1/' > {output}
+        
 
 
 def map_maf_filepath(wildcards):
@@ -69,20 +71,21 @@ rule temp_link_partially_processed_maf:
 rule maf_protein_coding_only:
     # Filter MAF file with only GENCODE protein coding regions
     input:
-        maf='processed_data/{name}.maf',
+        maf='processed_data/{seq_type}.maf',
         bed=GENCODE_PROTEIN_CODING_BED,
-    output: 'processed_data/{name}.gaf4bed.exon.maf'
+    output: 'processed_data/{seq_type}.gaf4bed.exon.maf'
     shell:
         "bedtools intersect -a {input.maf} -b {input.bed} | "
-        "sort -u -s -k 1,1V -k 2,2n -k 3,3n > {output}"
+        "sort -u > {output}"
+        # "sort -u -s -k 1,1V -k 2,2n -k 3,3n > {output}"
 
 
 rule split_exome_maf:
     input: 'processed_data/exome.broadbed.gaf4bed.exon.maf'
     output:
         expand(
-            'processed_data/GAFexon/{sample_id}.exome.broadgaf.maf',
-            sample_id=EXOME_SAMPLE_IDS_TO_GENOME.keys()
+            'processed_data/GAFexon/{sample_exome_id}.exome.broadgaf.maf',
+            sample_exome_id=EXOME_SAMPLE_IDS_TO_GENOME.keys()
         )
     shell:
         r"""
@@ -96,8 +99,8 @@ rule split_genome_maf:
     input: 'processed_data/genome.broadbed.gaf4bed.exon.maf'
     output:
         expand(
-            'processed_data/GAFexon/{sample_id}.genome.broadgaf.maf',
-            sample_id=GENOME_SAMPLE_IDS_TO_EXOME.keys()
+            'processed_data/GAFexon/{sample_genome_id}.genome.broadgaf.maf',
+            sample_exome_id=GENOME_SAMPLE_IDS_TO_EXOME.keys()
         )
     shell:
         r"""
@@ -229,7 +232,7 @@ rule bdeolap_nchar:
     output:  
         'output/e.g.mymerge.{nchar}.maf'        
     shell:
-        'python {py_script} {sample_mapping} {exome_maf} {genome_maf} > {output}'
+        'python {input.py_script} {input.sample_mapping} {input.exome_maf} {input.genome_maf} > {output}'
 
 
 rule all:
