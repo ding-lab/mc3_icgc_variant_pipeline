@@ -3,5 +3,6 @@
 Snakefile.copied
 
 # output folders
+output/
 annotations/
 processed_data/
