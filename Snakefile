@@ -100,7 +100,7 @@ rule split_genome_maf:
     output:
         expand(
             'processed_data/GAFexon/{sample_genome_id}.genome.broadgaf.maf',
-            sample_exome_id=GENOME_SAMPLE_IDS_TO_EXOME.keys()
+            sample_genome_id=GENOME_SAMPLE_IDS_TO_EXOME.keys()
         )
     shell:
         r"""
@@ -114,6 +114,8 @@ rule reduce_exome_maf_low_coverage_wig:
     """
     Take split exome MAF and remove any variants not in whole exome wig
     (no sequencing coverage)
+
+    Adapted from reduceGAFexonsMaf.py 
     """
     input:
         exome_maf='processed_data/GAFexon/{exome_id}.exome.broadgaf.maf',
@@ -161,6 +163,7 @@ rule reduce_genome_maf_low_coverage_wig:
 
 rule merge_exome_wig_reduced_exome_mafs:
     # Concatenate all the reduced exome MAFs
+    # readme.txt:38
     input:
         expand(
             'processed_data/GAFexonReduced/{exome_id}.broadgaf.wig.exome.reduced.maf',
@@ -169,11 +172,12 @@ rule merge_exome_wig_reduced_exome_mafs:
     output:
         'processed_data/exome.broadbed.gafe.wigs.maf'
     shell:
-        "cat {input} > {output}"
+        "cat {input} | sort -u > {output}"
 
 
 rule merge_exome_wig_reduced_genome_mafs:
     # Concatenate all the reduced genome MAFs
+    # readme.txt:39
     input:
         expand(
             'processed_data/GAFexonReduced/{genome_id}.broadgaf.wig.genome.reduced.maf',
@@ -182,18 +186,18 @@ rule merge_exome_wig_reduced_genome_mafs:
     output:
         'processed_data/genome.broadbed.gafe.wigs.maf'
     shell:
-        "cat {input} > {output}"
+        "cat {input} | sort -u > {output}"
 
 
-rule genome_wig_to_bed:
-    # Convert the genome sequencing coverage WIG as BED format
-    input: config['FAKE_ICGC46_WIG']
-    output: 'processed_data/fake_icgc46.wig.bed'
-    shell:
-        r"wig2bed --zero-indexed < {input} | "
-        # chr1 -> 1 naming conversion and remove non canonical chroms
-        r"sed -E -e 's/^chr([0-9]+|X|Y|M)/\1/g' -e '/^chr/d'> {output}"
-
+# rule genome_wig_to_bed:
+#     # Convert the genome sequencing coverage WIG as BED format
+#     input: config['FAKE_ICGC46_WIG']
+#     output: 'processed_data/fake_icgc46.wig.bed'
+#     shell:
+#         # New way: 
+#         # r"wig2bed --zero-indexed < {input} | "
+#         # # chr1 -> 1 naming conversion and remove non canonical chroms
+#         # r"sed -E -e 's/^chr([0-9]+|X|Y|M)/\1/g' -e '/^chr/d'> {output}" 
 
 
 rule reduce_maf_low_genome_wig:
@@ -202,12 +206,14 @@ rule reduce_maf_low_genome_wig:
     #
     # Note that in whole genome sequencing we don't have the BAM(Wig) file for
     # each paired sample, so we rely on a "pesudo" joint wig file.
+    # readme.txt:42 and 44 
     input:
         maf='processed_data/{seq_type}.broadbed.gafe.wigs.maf',
-        genome_bed='processed_data/fake_icgc46.wig.bed',
+        # genome_bed='processed_data/fake_icgc46.wig.bed',
+        genome_bed=config['FAKE_ICGC46_WIG_BED'],
     output: 'processed_data/{seq_type}.broadbed.gafe.wigs.rep.maf'
     shell:
-        "bedtools intersect -a {input.maf} -b {input.genome_bed} > {output}"
+        "bedtools intersect -a {input.maf} -b {input.genome_bed} | sort -u > {output}"
 
 
 rule reduce_maf_low_genome_wig_uniq_snv:
@@ -224,6 +230,7 @@ rule reduce_maf_low_genome_wig_uniq_snv:
 
 rule bdeolap_nchar:
     # Overlapp
+    # readme.txt:66 and 68 
     input: 
         sample_mapping=config['OVERLAPPED_SAMPLE_INFO'],
         py_script='scripts/bedolap.{nchar}.py',
