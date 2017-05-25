@@ -4,11 +4,16 @@ Require either [miniconda3] or [Anaconda3] and Python 3.5+.
 
 Create a new conda virtual environment with name `venv`:
 
-    conda create -n venv -f environment.yml
+    conda env create -n venv -f environment.yml
+
+Note that current `environment.yml` works only on Linux. Alternatively, re-create the env by:
+
+    conda create -n venv r python                   \
+        bedtools                                    \
+        snakemake r-data.table r-stringr r-plyr
 
 
-Check if all the paths in `config.yaml` exist. If not, modify them with the
-correct paths.
+Modify all the paths to data files in `config.yaml`.
 
 
 ## Usage
