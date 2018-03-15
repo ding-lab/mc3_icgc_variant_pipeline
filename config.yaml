@@ -1,10 +1,16 @@
-GENCODE_GTF: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/ICGC_MC3/Data/gencode.v19.annotation.gtf.gz 
+GENCODE_GTF: /diskmnt/Projects/ICGC_MC3/Reduction_Beds/gencode.v19.annotation.gtf.gz 
 SAMPLES:
   exome_broadbed: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/ICGC_MC3/TCGAonlyData/exome.broadbed.maf
   genome_broadbed: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/ICGC_MC3/TCGAonlyData/genome.broadbed.maf
 
-OVERLAPPED_SAMPLE_INFO: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/ICGC_MC3/Map/exome.genome.olap.stats.txt
-WIG_BED_DIR: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/ICGC_MC3/CleanWigs/WigBeds
-FAKE_ICGC46_WIG: /gscmnt/gc3024/dinglab/medseq/Noncoding_eQTL/ICGC_TCGA_comparison/wliang/icgc50/BAM2Wig/bed/fake_icgc46.wig
+OVERLAPPED_SAMPLE_INFO: /diskmnt/Projects/ICGC_MC3/ID_Mapping/MC3_PCAWG_Matched.ids.v3.txt 
+EXOME_ALIQUOT_INFO: /diskmnt/Projects/ICGC_MC3/Debug/best_of_bam_choices_2016-04-01.txt 
+GENOME_ALIQUOT_INFO: /diskmnt/Projects/ICGC_MC3/ID_Mapping/pcawg_sample_sheet.v1.4.2016-09-14.tsv
+EXOME_WIG_DIR: /diskmnt/Datasets/TCGA/MC3/Coverage_wigs/wigs
+WIG_BED_DIR: /diskmnt/Projects/ICGC_MC3/Coverage_Reduction
+FAKE_ICGC46_WIG: /diskmnt/Projects/ICGC_MC3/Data/fake_icgc46.wig
 FAKE_ICGC46_WIG_BED: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/ICGC_MC3/CleanWigs/fake_icgc46.wig.bed
-BROAD_ROI_BED: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/SMG_20160403/input/GenROI/gaf_20111020+broad_wex_1.1_hg19.bed
+BROAD_ROI_BED: /diskmnt/Projects/ICGC_MC3/Reduction_Beds/gaf_20111020+broad_wex_1.1_hg19.bed
+EXOME_MAF: /diskmnt/Projects/ICGC_MC3/Data/mc3.v0.2.8.PUBLIC.maf
+GENOME_MAF: /diskmnt/Projects/ICGC_MC3/Data/October_2016_whitelist_2583.snv_mnv_indel.maf
+GOOD_WIGS: /diskmnt/Projects/ICGC_MC3/Data/good.wigs.txt 
