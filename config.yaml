@@ -6,6 +6,7 @@ SAMPLES:
 OVERLAPPED_SAMPLE_INFO: /diskmnt/Projects/ICGC_MC3/ID_Mapping/MC3_PCAWG_Matched.ids.v3.txt 
 EXOME_ALIQUOT_INFO: /diskmnt/Projects/ICGC_MC3/Debug/best_of_bam_choices_2016-04-01.txt 
 GENOME_ALIQUOT_INFO: /diskmnt/Projects/ICGC_MC3/ID_Mapping/pcawg_sample_sheet.v1.4.2016-09-14.tsv
+GENOME_ALIQUOT_INFO_FOR_SQLITE: /diskmnt/Projects/ICGC_MC3/ID_Mapping/SQL_Mapping.txt
 EXOME_WIG_DIR: /diskmnt/Datasets/TCGA/MC3/Coverage_wigs/wigs
 WIG_BED_DIR: /diskmnt/Projects/ICGC_MC3/Coverage_Reduction
 FAKE_ICGC46_WIG: /diskmnt/Projects/ICGC_MC3/Data/fake_icgc46.wig

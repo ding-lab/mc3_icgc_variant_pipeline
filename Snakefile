@@ -81,8 +81,6 @@ rule reduce_exome_maf:
                     if eid in EXOME_SAMPLE_IDS_TO_GENOME:
                         e.write("\t".join(l))
                         e.write("\n")
-            f.close()
-        e.close()
 
 
 rule reduce_genome_maf:
@@ -101,36 +99,31 @@ rule reduce_genome_maf:
                     if gid in GENOME_SAMPLE_IDS_TO_EXOME:
                         g.write("\t".join(l))
                         g.write("\n")
-            f.close()
-        g.close()
 
 
 rule get_orig_maf_header_exome:
     input: EXOME_MAF
     output: 'processed_data/exome.maf.header'
     run:
-        with open({output},"w") as e:
-            with open({input},"r") as f:
+        with open(output[0], "w") as e:
+            with open(input[0], "r") as f:
                 ehead = f.readline()[:-1].split("\t")
                 hugo = ehead.pop(0)
                 ehead.append(hugo)
+                del ehead[:3]
                 e.write("\t".join(ehead))
-            f.close()
-        e.close()
 
 
 rule get_orig_maf_header_genome:
     input: GENOME_MAF
     output: 'processed_data/genome.maf.header'
     run:
-        with open({output},"w") as g:
-            with open({input},"r") as f:
+        with open(output[0],"w") as g:
+            with open(input[0],"r") as f:
                 ghead = f.readline()[:-1].split("\t")
                 hugo = ghead.pop(0)
                 ghead.append(hugo)
                 g.write("\t".join(ghead))
-            f.close()
-        g.close()
 
 
 # NOTE I COULD REDUCE THIS INTO ONE BEDTOOLS STEP BY taking the intersection of my beds.
@@ -286,14 +279,15 @@ rule reduce_exome_maf_low_coverage_wig:
     output:
         'processed_data/GAFexonReduced/{exome_id}.broadgaf.wig.exome.reduced.maf'
     shell:
-        r"""
-        bedtools intersect \
-            -b {input.exome_wig_bed} \
-            -a {input.exome_maf} \
-            -wb | \
-        awk -F"\t" '{{OFS = "\t"}} {{if($NF == 1) print $0}}' \
-        > {output}
-        """
+        'python scripts/reduceMAFusingWIG.py {input.exome_maf} {input.exome_wig_bed} exome > {output}'
+#        r"""
+#        bedtools intersect \
+#            -a {input.exome_maf} \
+#            -b {input.exome_wig_bed} \
+#            -wa | \
+#        awk -F"\t" '{{OFS = "\t"}} {{if($NF == 1) print $0}}' \
+#        > {output}
+#        """
 
 
 def retrieve_exome_wig_bed(wildcards):
@@ -314,14 +308,15 @@ rule reduce_genome_maf_low_coverage_wig:
     output:
         'processed_data/GAFexonReduced/{genome_id}.broadgaf.wig.genome.reduced.maf'
     shell:
-        r"""
-        bedtools intersect \
-            -b {input.exome_wig_bed} \
-            -a {input.genome_maf} \
-            -wb | \
-        awk -F"\t" '{{OFS = "\t"}} {{if($NF == 1) print $0}}' \
-        > {output}
-        """
+        'python scripts/reduceMAFusingWIG.py {input.genome_maf} {input.exome_wig_bed} exome > {output}'
+#        r"""
+#        bedtools intersect \
+#            -b {input.exome_wig_bed} \
+#            -a {input.genome_maf} \
+#            -wb | \
+#        awk -F"\t" '{{OFS = "\t"}} {{if($NF == 1) print $0}}' \
+#        > {output}
+#        """
 
 
 rule merge_exome_wig_reduced_exome_mafs:
@@ -335,7 +330,7 @@ rule merge_exome_wig_reduced_exome_mafs:
     output:
         'processed_data/exome.broadbed.gafe.wigs.maf'
     shell:
-        "cat {input} | sort -u > {output}"
+        "cat {input} > {output}"
 
 
 rule merge_exome_wig_reduced_genome_mafs:
@@ -349,7 +344,7 @@ rule merge_exome_wig_reduced_genome_mafs:
     output:
         'processed_data/genome.broadbed.gafe.wigs.maf'
     shell:
-        "cat {input} | sort -u > {output}"
+        "cat {input} > {output}"
 
 
 rule genome_wig_to_bed:
@@ -357,7 +352,6 @@ rule genome_wig_to_bed:
     input: config['FAKE_ICGC46_WIG']
     output: 'processed_data/fake_icgc46.wig.bed'
     shell:
-        # New way:
         r"wig2bed --zero-indexed < {input} | "
         # chr1 -> 1 naming conversion and remove non canonical chroms
         r"sed -E -e 's/^chr([0-9]+|X|Y|M)/\1/g' -e '/^chr/d'> {output}"
@@ -376,7 +370,8 @@ rule reduce_maf_low_genome_wig:
         # genome_bed=config['FAKE_ICGC46_WIG_BED'],
     output: 'processed_data/{seq_type}.broadbed.gafe.wigs.rep.maf'
     shell:
-        "bedtools intersect -a {input.maf} -b {input.genome_bed} | sort -u > {output}"
+        'python scripts/reduceMAFusingWIG.py {input.maf} {input.genome_bed} genome > {output}'
+        # "bedtools intersect -a {input.maf} -b {input.genome_bed} | sort -u -T /diskmnt/Projects/ICGC_MC3/tmp -S 1G > {output}"
 
 
 rule reduce_maf_low_genome_wig_uniq_snv:
@@ -386,7 +381,7 @@ rule reduce_maf_low_genome_wig_uniq_snv:
     shell:
         r"""
         awk -F"\t" '{{if($2 == $3) print $0}}' {input} \
-            | sort -u | sort -k1,1 -k2,2n \
+            | sort -u -T /diskmnt/Projects/ICGC_MC3/tmp -S 1G | sort -k1,1 -k2,2n -T /diskmnt/Projects/ICGC_MC3/tmp -S 1G \
             > {output}
         """
 
@@ -405,14 +400,35 @@ rule bdeolap_nchar:
         'python {input.py_script} {input.sample_mapping} {input.exome_maf} {input.genome_maf} > {output}'
 
 
-rule all:
+rule make_sqlite_db:
     input:
+        exome_maf='processed_data/exome.broadbed.gafe.wigs.rep.maf',
+        exome_maf_header=rules.get_orig_maf_header_exome.output,
+        genome_maf='processed_data/genome.broadbed.gafe.wigs.rep.maf',
+        genome_maf_header=rules.get_orig_maf_header_genome.output,
+        genome_id_mapping=config['GENOME_ALIQUOT_INFO_FOR_SQLITE']
+    params:
+        exome_pipe='processed_data/exome.pipe',
+        genome_pipe='processed_data/genome.pipe',
+        sql='scripts/make_db.sql'
+    output:
+        'output/mc3_icgc.sqlite'
+    shell:
+        '''
+        sed -e 's#\tSTRAND\t#\tSTRAND_VEP\t#g' < {input.exome_maf_header} > processed_data/exome.maf.for_db.header
+        mkfifo {params.exome_pipe}
+        cut -f 1-111 {input.exome_maf} > {params.exome_pipe} &
+        
+        cut -f 1-43 {input.genome_maf} > {params.genome_pipe} &
+        sqlite3 {output} < {params.sql}
+
+        rm {params.exome_pipe} {params.genome_pipe}
+        '''
+
+rule all:
+    input: rules.make_sqlite_db.output
         # expand(
-        #     'processed_data/{seq_type}.broadbed.gafe.wigs.rep.snv.uniq.maf',
-        #     seq_type=['exome', 'genome']
+        #     'output/e.g.mymerge.{nchar}.maf',
+        #     nchar=['12char', '25char']
         # )
-        expand(
-            'output/e.g.mymerge.{nchar}.maf',
-            nchar=['12char', '25char']
-        )
 
