@@ -8,10 +8,15 @@ EXOME_ALIQUOT_INFO: /diskmnt/Projects/ICGC_MC3/Debug/best_of_bam_choices_2016-04
 GENOME_ALIQUOT_INFO: /diskmnt/Projects/ICGC_MC3/ID_Mapping/pcawg_sample_sheet.v1.4.2016-09-14.tsv
 GENOME_ALIQUOT_INFO_FOR_SQLITE: /diskmnt/Projects/ICGC_MC3/ID_Mapping/SQL_Mapping.txt
 EXOME_WIG_DIR: /diskmnt/Datasets/TCGA/MC3/Coverage_wigs/wigs
-WIG_BED_DIR: /diskmnt/Projects/ICGC_MC3/Coverage_Reduction
+EXOME_WIG_BED_DIR: /diskmnt/Projects/ICGC_MC3/Coverage_Reduction
+GENOME_WIG_DIR: /diskmnt/Datasets/PCAWG/Coverage/compressed_coverage_tracks
+GENOME_WIG_BED_DIR: /diskmnt/Projects/ICGC_MC3/Coverage_Reduction_Genome
 FAKE_ICGC46_WIG: /diskmnt/Projects/ICGC_MC3/Data/fake_icgc46.wig
 FAKE_ICGC46_WIG_BED: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/ICGC_MC3/CleanWigs/fake_icgc46.wig.bed
 BROAD_ROI_BED: /diskmnt/Projects/ICGC_MC3/Reduction_Beds/gaf_20111020+broad_wex_1.1_hg19.bed
 EXOME_MAF: /diskmnt/Projects/ICGC_MC3/Data/mc3.v0.2.8.PUBLIC.maf
 GENOME_MAF: /diskmnt/Projects/ICGC_MC3/Data/October_2016_whitelist_2583.snv_mnv_indel.maf
 GOOD_WIGS: /diskmnt/Projects/ICGC_MC3/Data/good.wigs.txt 
+COMBINED_ROI_BED: /diskmnt/Projects/ICGC_MC3/Reduction_Beds/combined.bitgt.gencode19.merged.bed
+ID_SIMILAR01: /diskmnt/Projects/ICGC_MC3/ID_Mapping/id_similarity.exome.genome.txt
+TCGA12_CANCER: /diskmnt/Projects/ICGC_MC3/ID_Mapping/PCA.sample.cancer.txt
