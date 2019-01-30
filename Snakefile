@@ -4,6 +4,9 @@ from pathlib import Path
 
 GENCODE_PROTEIN_CODING_BED = 'annotations/gencode.proteincoding.known.gene.bed'
 
+#If available
+CONTROLLED_MAF = ''
+
 EXOME_MAF = config['EXOME_MAF']
 GENOME_MAF = config['GENOME_MAF']
 
@@ -57,6 +60,11 @@ for pth in Path(config['GENOME_WIG_DIR']).glob('*.coverage.gz'):
 #TWO SAMPLES ARE MISSING COVERAGE FILES 
 #      1 TCGA-B5-A11I-01A-11D-A10M-09
 #      1 TCGA-B6-A0RT-01A-21D-A099-09
+
+###FOR CAD PLOTS#### 
+CADDVARS=["cHmmBivFlnk","cHmmEnhBiv","cHmmEnhG","cHmmEnh","cHmmHet","cHmmQuies","cHmmReprPC","cHmmReprPCWk","cHmmTssAFlnk","cHmmTssA","cHmmTssBiv","cHmmTxFlnk","cHmmTx","cHmmTxWk","cHmmZnfRpts","CpG","dnaHelT","dnaMGW","dnaProT","dnaRoll","EncExp","EncH3K27Ac","EncH3K4Me1","EncH3K4Me3","EncNucleo","EncOCCombPVal","EncOCctcfPVal","EncOCctcfSig","EncOCDNasePVal","EncOCDNaseSig","EncOCFairePVal","EncOCFaireSig","EncOCmycPVal","EncOCmycSig","EncOCpolIIPVal","EncOCpolIISig","ESP_AFR","ESP_AF","ESP_EUR","fitConsc","GC","GerpN","GerpRSpval","GerpRS","GerpS","mamPhCons","mamPhyloP","mapAbility20bp","mapAbility35bp","mirSVR_E","mirSVR_Score","motifDist","motifEScoreChng","PHRED","PolyPhenVal","priPhCons","priPhyloP","RawScore","relcDNApos","relCDSpos","relProts","scoreSegDup","SIFTval","TFBSPeaksMax","TG_AFR","TG_AF","TG_AMR","TG_ASN","TG_EUR","verPhCons","verPhyloP"]
+
+
 
 
 #These rules take wigs and puts them into an exome regions only BED file format. 
@@ -513,8 +521,8 @@ rule clonality_figure:
         makeClone='scripts/make_clonality.R',
         fullClone='/diskmnt/Projects/ICGC_MC3/Gen_Figures/Clonality_Figure/Processed_data/Full_Clonality.tsv'
     output:
-        gClonePDF='figures/Clonality.ICGC.subclusters.v6.pdf',
-        eClonePDF='figures/Clonality.TCGA.subclusters.v6.pdf'
+        gClonePDF='figures/clonality.ICGC.subclusters.pdf',
+        eClonePDF='figures/clonality.TCGA.subclusters.pdf'
 
     shell:
         '''
@@ -533,25 +541,328 @@ rule vaf_figure:
 
         '''
 
-#rule general_gene_figure:
-#    input:
-#        a
-#    output:
-#        b
-#    shell:
-#        '''
-          
-#        '''        
+rule inverse_controlled_processing:
+#This rule has room for a figure 
+    input:
+        full='output/full_cleaned.tsv',
+        mc3ControlMAF=config['MC3_CONTROLLED'],
+        makeControlled='scripts/capture_mc3controlled_icgcuniq.py'
+    output:
+        MC3controlledInPCAWG='processed_data/mc3_controlled_maf.of.icgcUnique.txt',
+        PCAWGuniqNOTinMC3='processed_data/unique_icgc.notin.mc3_controlled.txt',
+        PCAWGuniqInMC3='processed_data/unique_icgc.in.mc3_controlled.txt'
+    shell:
+        '''
+        python {input.makeControlled} {input.full} {input.mc3ControlMAF} {output.MC3controlledInPCAWG} {output.PCAWGuniqNOTinMC3} {output.PCAWGuniqInMC3}
+        '''
+
+rule single_caller_figure:
+    input:
+        plotR="scripts/make_singlecaller.R",
+        mc3control="processed_data/mc3_controlled_maf.of.icgcUnique.txt"
+    output:
+        singlePDF="figures/single.caller.filter.pdf"
+    shell:
+        '''
+        Rscript --quiet --vanilla {input.plotR} {input.mc3control} {output.singlePDF}
+        '''       
+
+rule filter_figure:
+    input: 
+        likertProc="scripts/likert_reformat.py",
+        full='output/full_cleaned.tsv',
+        makelikert="scripts/make_likerFilter.R",
+    output: 
+        likert='processed_data/data.4.likert.txt',
+        likertPlot='figures/MC3filtersInPCAWG.likert.pdf'
+    shell: 
+        '''
+        python {input.likertProc} {input.full} > {output.likert}
+
+        Rscript --quiet --vanilla {input.makelikert} {output.likert} {output.likertPlot}
+        '''
+
+rule CADD_annotation_split:
+    input:
+        full='output/full_cleaned.tsv',
+        splitfull='scripts/divide_full_forCADD.R'
+    output:
+        o0='processed_data/psudoVCF.SNPs.MC3_PCAWG.txt',
+        o1='processed_data/vars_chr1-chr6.psuedo.vcf',
+        o2='processed_data/vars_chr6-chr12.psuedo.vcf',
+        o3='processed_data/vars_chr12-chrY.psuedo.vcf'
+    shell:
+        '''
+        Rscript --quiet --vanilla {input.splitfull} {input.full} {output.o1} {output.o2} {output.o3} {output.o0}
+        '''
+
+rule CADD_annotation_vep:
+    input:
+        'processed_data/{cadd}.psuedo.vcf',
+    output:
+        'processed_data/{cadd}.psuedo.annotated.txt'
+    shell:
+        '''
+        docker run --rm -t -i -u `id -u`:`id -g` -v /diskmnt/Datasets/VEP:/home/vep/.vep -v /diskmnt/Datasets/CADD:/annotations/CADD -v $PWD:/data ensemblorg/ensembl-vep:release_91.3 vep --cache --offline --fork 4 --minimal --pick --assembly GRCh37  -i /data/{input} -o /data/{output} --plugin CADD,/annotations/CADD/whole_genome_SNVs_inclAnno.tsv.gz
+        '''
+        
+rule combine_CADD:
+    input:
+        tocat=expand('processed_data/{cadd}.psuedo.annotated.txt', cadd=[i for i in ["vars_chr1-chr6","vars_chr6-chr12","vars_chr12-chrY"]]),
+        reform='scripts/reformat_anno.py'
+    output:
+        'processed_data/CADD.annotations.fullvars.txt'
+    shell:
+        '''
+        python {input.reform} {input.tocat} > {output}
+        '''
+
+
+rule CADD_plot:
+    input: 
+        full='output/full_cleaned.tsv',
+        makeCADD='scripts/make_cadd.R',
+        caddanno='processed_data/CADD.annotations.fullvars.txt',
+        unique_p='processed_data/unique_icgc.notin.mc3_controlled.txt',
+    output: 
+        dynamic("figures/CADD/{caddvars}_PCAWG_unique.pdf")
+    shell: 
+        '''
+        Rscript --quiet --vanilla {input.makeCADD} {input.full} {input.unique_p} {input.caddanno} figures/CADD/
+        '''
+   
+
+rule CADD_figure:
+    input: dynamic("figures/CADD/{caddvars}_PCAWG_unique.pdf")
+
+
+
+rule CADD_plot_depth:
+    input:
+        full='output/full_cleaned.tsv',
+        makeCADD='scripts/make_cadd_depth.R',
+        caddanno='processed_data/CADD.annotations.fullvars.txt',
+        unique_p='processed_data/unique_icgc.notin.mc3_controlled.txt',
+    output:
+        dynamic("figures/CADD/{caddvars}_depth.pdf")
+    shell:
+        '''
+        Rscript --quiet --vanilla {input.makeCADD} {input.full} {input.unique_p} {input.caddanno} figures/CADD/
+        '''
+
+rule CADD_depth:
+    input: dynamic("figures/CADD/{caddvars}_depth.pdf")
+
+
+rule CADD_plot_depth_sd:
+    input:
+        full='output/full_cleaned.tsv',
+        makeCADD='scripts/make_cadd_sd.R',
+        caddanno='processed_data/CADD.annotations.fullvars.txt',
+        unique_p='processed_data/unique_icgc.notin.mc3_controlled.txt',
+    output:
+        dynamic("figures/CADD/{caddvars}_depth_sd.pdf")
+    shell:
+        '''
+        Rscript --quiet --vanilla {input.makeCADD} {input.full} {input.unique_p} {input.caddanno} figures/CADD/
+        '''
+
+rule CADD_sd:
+    input: dynamic("figures/CADD/{caddvars}_depth_sd.pdf")
+
+rule general_gene_annotate:
+#Note that this takes a different python environment that Liang-Bo set up.
+    input:
+        gencode=config['GENCODE_DB'],
+        full='output/full_cleaned.tsv',
+        annotate="scripts/general_gene_annotate.py",
+        enviroPython="/diskmnt/Projects/Users/lwang/miniconda3/envs/genemodel/bin/python"
+    output:
+        annolog="logs/genemodel.annotation.log",
+        gen_gene="processed_data/general_gene_model_annotation.tsv.gz",
+    shell:
+        '''
+        {input.enviroPython} {input.annotate} {input.gencode} {input.full} 2> {output.annolog} | gzip -c > {output.gen_gene}         
+        '''        
+
+rule general_gene_figure:
+    input:
+        makeGenGene='scripts/make_genGene.R',
+        full='output/full_cleaned.tsv',
+        gen_gene="processed_data/general_gene_model_annotation.tsv.gz",
+        unique_p='processed_data/unique_icgc.notin.mc3_controlled.txt',
+    output:
+        gen_gene_unzip = 'processed_data/general_gene_model_annotation.tsv',
+        ggProportionPDF='figures/Proportional_genemodel.pdf',
+        ggCountPDF='figures/Count_genemodel.pdf'
+    shell:
+        '''
+        gunzip {input.gen_gene}
+
+        Rscript --quiet --vanilla {input.makeGenGene} {input.full} {output.gen_gene_unzip} {input.unique_p} {output.ggProportionPDF} {output.ggCountPDF}
+        ''' 
+
+rule sunburst_figure:
+    input:
+        prepDat='scripts/maf_complement.py',
+        g_broadgaf_maf='processed_data/genome_broadbed.gaf.maf',
+        g_self_maf='processed_data/genome.broadbed.gafe.wigs.self.maf',
+        pseudo=config['PSEUDO_GENES_LIST'],
+        makeSunburst='scripts/make_sunburst.R',
+        can299=config['CANCER_299']
+    output:
+        rem_by_covg='processed_data/removed.by.coverage.genome.maf',
+        utr3_canPDF='figures/UTR3.Cancer.Histogram.pdf',
+        utr5_canPDF='figures/UTR5.Cancer.Histogram.pdf',
+        miss_canPDF='figures/MISS.Cancer.Histogram.pdf',
+        sunburstPDF='figures/Coverage_sunburst.pdf'
+    shell:
+        '''
+        python {input.prepDat} {input.g_self_maf} {input.g_broadgaf_maf} > {output.rem_by_covg}
+
+        Rscript --quiet --vanilla {input.makeSunburst} {output.rem_by_covg} {input.pseudo} {input.can299} {output.utr3_canPDF} {output.utr5_canPDF} {output.miss_canPDF} {output.sunburstPDF}
+        '''
+
+rule CADD_covg_split:
+    input:
+        rem_by_covg='processed_data/removed.by.coverage.genome.maf',
+        splitcovg='scripts/divide_covg_forCADD.R'
+    output:
+        o0='processed_data/covgVCF.SNPs.MC3_PCAWG.txt',
+        o1='processed_data/vars_chr1-chr6.covg.vcf',
+        o2='processed_data/vars_chr6-chr12.covg.vcf',
+        o3='processed_data/vars_chr12-chrY.covg.vcf'
+    shell: 
+        '''
+        Rscript --quiet --vanilla {input.splitcovg} {input.rem_by_covg} {output.o1} {output.o2} {output.o3} {output.o0}
+        '''
+
+rule CADD_covg_annotation_vep:
+    input:
+        'processed_data/{cadd}.covg.vcf',
+    output:
+        'processed_data/{cadd}.covg.annotated.txt'
+    shell:
+        '''
+        docker run --rm -t -i -u `id -u`:`id -g` -v /diskmnt/Datasets/VEP:/home/vep/.vep -v /diskmnt/Datasets/CADD:/annotations/CADD -v $PWD:/data ensemblorg/ensembl-vep:release_91.3 vep --cache --offline --fork 4 --minimal --pick --assembly GRCh37  -i /data/{input} -o /data/{output} --plugin CADD,/annotations/CADD/whole_genome_SNVs_inclAnno.tsv.gz
+        '''
+
+rule combine_covg_CADD:
+    input:
+        tocat=expand('processed_data/{cadd}.covg.annotated.txt', cadd=[i for i in ["vars_chr1-chr6","vars_chr6-chr12","vars_chr12-chrY"]]),
+        reform='scripts/reformat_anno.py'
+    output:
+        'processed_data/CADD.annotations.vars.rem_by_covg.txt'
+    shell:
+        '''
+        python {input.reform} {input.tocat} > {output}
+        '''
+
+rule covg_GC_depth_figures:
+    input:
+        plotr='scripts/make_gc_depth.R',
+        full='output/full_cleaned.tsv',
+        rmcovg='processed_data/removed.by.coverage.genome.maf',
+        caddcovg='processed_data/CADD.annotations.vars.rem_by_covg.txt',
+        pcawg_uniq='processed_data/unique_icgc.notin.mc3_controlled.txt',
+        caddfull='processed_data/CADD.annotations.fullvars.txt'
+    output:
+        density_pdf='figures/denisty_GC.pdf',
+        gc_depth_binned='figures/binned_gc_depth.pdf'
+    shell:
+        '''
+        Rscript --quiet --vanilla {input.plotr} {input.rmcovg} {input.caddcovg} {input.full} {input.pcawg_uniq} {input.caddfull} {output.gc_depth_binned} {output.density_pdf}
+        '''
+
+rule covg_CADD_figures:
+    input:
+        plotr='scripts/make_gc_depth.all.R',
+        full='output/full_cleaned.tsv',
+        rmcovg='processed_data/removed.by.coverage.genome.maf',
+        caddcovg='processed_data/CADD.annotations.vars.rem_by_covg.txt',
+        pcawg_uniq='processed_data/unique_icgc.notin.mc3_controlled.txt',
+        caddfull='processed_data/CADD.annotations.fullvars.txt'
+    output:
+        dynamic("figures/CADD/{caddvars}_depth_sd.pdf")
+    shell:
+        '''
+        Rscript --quiet --vanilla {input.plotr} {input.rmcovg} {input.caddcovg} {input.full} {input.pcawg_uniq} {input.caddfull} {output.density_pdf} {output.gc_depth_binned}
+        '''
+
+rule CADD_covg:
+    input: dynamic("figures/CADD/{caddvars}_covg.pdf")
+
+
+
+rule bed_wigs_genome:
+    input: 
+        bed=str(Path(config['GENOME_WIG_BED_DIR'], '{exome_id}.bed')),
+        bed2wig='scripts/bed2fixedwig.py'
+    output:
+        str(Path(config['GENOME_REDUCED_WIG'], '{exome_id}.wig'))
+    shell:
+        '''
+        python {input.bed2wig} {input.bed} {output}
+
+        '''
+
+rule gen_SMG_wigs: 
+    input: 
+        expand(str(Path(config['GENOME_REDUCED_WIG'], '{exome_id}.wig')), exome_id=[x for x in GENOME_SAMPLE_IDS_TO_EXOME.values() if x not in G_WIG_BLACKLIST])
+
+
+rule subset_MAF_byCancer:
+    #This script needs to split up the MAF and generate a wig_list
+    input:
+        maf='processed_data/genome_broadbed.gaf.maf',
+        samplemap=config['OVERLAPPED_SAMPLE_INFO'],
+        splitMAF='scripts/divide_genomeMAF_bycan.R'
+    output:
+        dynamic("processed_data/SMG/{cantype}.genome.reduced.maf")
+    shell:
+        '''
+        Rscript --quiet --vanilla {input.splitMAF} {input.maf} {input.samplemap}
+        ''' 
+
+
+rule get_ROI:
+    input:'/diskmnt/Software/bin/2020plus/data/intersection_snvbox_gafbitgt.unique.bed'
+
+    output:'processed_data/SMG/input/2020plus_roi'
+        
+    shell:
+        '''
+        cut -f 1-4 {input} > {output}
+        '''
+
     
+rule mutation_spectrum_figure:
+    input:
+        mc3reduced2exonsMAF='processed_data/exome.broadbed.gaf.maf',
+        pcawgreduced2exonMAF='processed_data/genome_broadbed.gaf.maf',
+        mkMutSpec='scripts/make_mutspec.R'
+    output:
+        mc3_mutspec='figures/mc3_mutspec.pdf',
+        pcawg_mutspec='figures/pcawg_mutspec.pdf',
+        mutspec_notes='processed_data/mutspecNotes.txt'
+    shell:
+        '''
+        Rscript --quiet --vanilla {input.mkMutSpec} {input.mc3reduced2exonsMAF} {input.pcawgreduced2exonMAF} {output.mc3_mutspec} {output.pcawg_mutspec} {output.mutspec_notes}
+        ''' 
 
 
- 
+
 #rule all_figures:
 #    input: 
 #        rules.upSetR_olap_figure.output
 #        rules.landscape_sample_figure.output
 #        rules.landscape_cancer_figure.output
 #        rules.simulation_figure.output
+#        rules.clonality_figure.output
+#        rules.vaf_figure.output
+#        rules.CADD_figure.output
+#        rules.general_gene_figure.output
+#        rules.sunburst_figure.output
 #        rules.figure_750_540_figure.output
 
 

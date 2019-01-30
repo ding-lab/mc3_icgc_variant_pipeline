@@ -1,4 +1,5 @@
 GENCODE_GTF: /diskmnt/Projects/ICGC_MC3/Reduction_Beds/gencode.v19.annotation.gtf.gz 
+GENCODE_DB: /diskmnt/Projects/ICGC_MC3/Gen_Figures/GeneralGeneModel_Figure/gencode_v19.db
 SAMPLES:
   exome_broadbed: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/ICGC_MC3/TCGAonlyData/exome.broadbed.maf
   genome_broadbed: /gscmnt/gc7210/dinglab/medseq/shared/TCGA/MC3/mbailey/ICGC_MC3/TCGAonlyData/genome.broadbed.maf
@@ -20,3 +21,7 @@ GOOD_WIGS: /diskmnt/Projects/ICGC_MC3/Data/good.wigs.txt
 COMBINED_ROI_BED: /diskmnt/Projects/ICGC_MC3/Reduction_Beds/combined.bitgt.gencode19.merged.bed
 ID_SIMILAR01: /diskmnt/Projects/ICGC_MC3/ID_Mapping/id_similarity.exome.genome.txt
 TCGA12_CANCER: /diskmnt/Projects/ICGC_MC3/ID_Mapping/PCA.sample.cancer.txt
+MC3_CONTROLLED: /diskmnt/Datasets/TCGA/MC3/mc3.v0.2.8.CONTROLLED.CT.maf
+PSEUDO_GENES_LIST: /diskmnt/Projects/ICGC_MC3/Reduction_Beds/pseudogenes.txt
+CANCER_299: /diskmnt/Projects/ICGC_MC3/Data/cancer.gene.299.txt
+GENOME_REDUCED_WIG: /diskmnt/Projects/ICGC_MC3/Coverage_Reduction_Genome_Wig

@@ -1,3 +1,11 @@
+#extra files and folders
+*.list
+*.sh
+*.txt
+*.bed
+scripts/__pycache__/
+
+#Snakemake stuff
 logs
 .python-version
 .snakemake
@@ -7,3 +15,6 @@ Snakefile.copied
 output/
 annotations/
 processed_data/
+figures/
+my_scratch/
+

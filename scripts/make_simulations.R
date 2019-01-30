@@ -7,6 +7,11 @@ if (length(args)!=3) {
 }
 
 
+#################################
+#CODE written by William Meyerson 
+#Yale University
+#################################
+
 
 options(stringsAsFactors = F)
 x = as.data.frame(fread(args[1]))

@@ -103,7 +103,7 @@ summary = dat2 %>% group_by(label,TCGA_Uniq) %>%
 
 #Here I just want to change the words so that they appear in order 
 summary$label = ifelse(summary$label == "FALSE\nN = 26406", "Sub-clonal\nN = 26406",summary$label)
-summary$label = ifelse(summary$label == "TRUE\nN = 87433", "Clonal\nN = 26406",summary$label)
+summary$label = ifelse(summary$label == "TRUE\nN = 87433", "Clonal\nN = 87433",summary$label)
 
 
 p <- ggplot(summary[which(summary$label != "NA\nN = 58669"),], aes(x=label, y=pct, fill=TCGA_Uniq))
