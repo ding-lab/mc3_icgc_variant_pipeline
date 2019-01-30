@@ -850,7 +850,16 @@ rule mutation_spectrum_figure:
         Rscript --quiet --vanilla {input.mkMutSpec} {input.mc3reduced2exonsMAF} {input.pcawgreduced2exonMAF} {output.mc3_mutspec} {output.pcawg_mutspec} {output.mutspec_notes}
         ''' 
 
-
+rule snp_tnp_indel_figure:
+    input:
+        full='output/full_cleaned.tsv',
+        dnpfig='scripts/make_onp_indel.R'
+    output:
+        snpbar='figures/snp_dnp_tnp_indel.pdf'
+    shell:
+        '''
+        Rscript --quiet --vanilla {input.dnpfig} {input.full} {output.snpbar}
+        '''
 
 #rule all_figures:
 #    input: 
