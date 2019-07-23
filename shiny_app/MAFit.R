@@ -2,6 +2,7 @@ library(tidyverse)
 library(shiny)
 library(plotly)
 library(DT)
+library(shinyBS)
 
 percent = c("0%", "25%", "50%", "75%", "100%")
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
@@ -64,19 +65,26 @@ ui <- fluidPage(
     titlePanel("ICGC MC3 Overlap"),
     
     fluidRow(
-        column(3, sliderInput("ivaf_slider", "ICGC VAF Cut-off", min=0, max=1, value= c(0.0,1)),
-               sliderInput("mvaf_slider", "MC3 VAF Cut-off", min=0, max=1, value= c(0.0,1)),
-               checkboxGroupInput("filts_var", "MC3 Variant-Level Filters:",
+        column(3, 
+                 
+                       sliderInput("ivaf_slider", "ICGC VAF Cut-off", min=0, max=1, value= c(0.0,1)),
+               
+                       sliderInput("mvaf_slider", "MC3 VAF Cut-off", min=0, max=1, value= c(0.0,1)),
+                 
+                 
+                       checkboxGroupInput("filts_var", "MC3 Variant-Level Filters:",
                                   c("PASS"="PASS",
-                                    "oxog"="oxog",
+#                                    "oxog"="oxog", #Any samples with oxog where removed from this app
                                     "common_in_exac"="common_in_exac",
                                     "StrandBias"="StrandBias")),
-               checkboxGroupInput("filts_sample", "MC3 Sample-Level Filters:",
+                 
+                       checkboxGroupInput("filts_sample", "MC3 Sample-Level Filters:",
                                   c("nonpreferredpair"="nonpreferredpair",
                                     "native_wga_mix"="native_wga_mix",
                                     "wga"="wga",
                                     "gapfiller"="gapfiller")),
-               downloadButton("downloadData", "Download")
+                 
+                       downloadButton("downloadData", "Download")
         ),
         column(9, plotlyOutput("pid", height = "100%"))
     ),
@@ -88,7 +96,13 @@ ui <- fluidPage(
         ))
     ),
     
-    fluidRow(column(12, DT::dataTableOutput("table")))
+    fluidRow(column(12, DT::dataTableOutput("table"))),
+
+    bsTooltip(id = "ivaf_slider", title = "Select a variant allele fraction window for PCAWG vars", trigger = "hover"),
+    bsTooltip(id = "mvaf_slider", title = "Select a variant allele fraction windows for MC3 vars", trigger = "hover"),
+    bsTooltip(id = "filts_var", title = "Select a variant with a given MC3 filter (PASS = default)", trigger = "hover"),
+    bsTooltip(id = "filts_sample", title = "Select samples with a given MC3 filter", trigger = "hover"),
+    bsTooltip(id = "downloadData", title = "Download mutation data based on your filter criteria", trigger = "hover")
 ) 
 
 server <- function(input, output, session) {
@@ -97,28 +111,7 @@ server <- function(input, output, session) {
         updateTextInput(session, "mytext", value=c(input$ivaf_slider, input$mvaf_slider))
     })
 
-    gene_up <- reactive({
-        up_data <- dat2() %>% 
-            select(mc3_exome_barcode, Hugo_Symbol, `Hugo_Symbol:1`)
-        if (input$bar != "All") {
-            up_data <- up_data %>%
-                filter(startsWith(mc3_exome_barcode, input$bar))
-        }
-        mc3_genes <- unique(up_data$Hugo_Symbol)
-        pcawg_genes <- unique(up_data$"Hugo_Symbol:1")
-        mympg <- sort(union(mc3_genes, pcawg_genes))
-        as.character(c("All", mympg))
-    })
-    
-    observe({
-        if(input$gene == "All"){
-            updateSelectInput(session, "gene", choices = gene_up(), selected = "All")
-        }
-        else{
-            updateSelectInput(session, "gene", choices = gene_up(), selected = input$gene)
-        }
-    })
-    
+   
     dat0 <- reactive({
         matches_var <- paste(input$filts_var, collapse="|")
         matches_sample <- paste(input$filts_sample, collapse="|")
@@ -235,21 +228,23 @@ server <- function(input, output, session) {
             # remove axis ticks and tick mark labels 
             # REF: https://stackoverflow.com/questions/35090883/remove-all-of-x-axis-labels-in-ggplot
             theme(
-                axis.title = element_blank(),
-                axis.text = element_blank(),
+                axis.title.x = element_blank(),
+                axis.text.x = element_blank(),
                 axis.ticks = element_blank(),
                 panel.border = element_blank()
-            )
+            ) 
+            
         hist_right <- ggplot(toPlot, aes(perc_MC3_in_PCAWG)) +
             geom_histogram(fill="#BE312D", breaks = seq(0, 1, 0.01)) +
             coord_flip()+
             theme_bw() + 
             theme(
-                axis.title = element_blank(),
-                axis.text = element_blank(),
+                axis.title.x.top = element_text("Count"),
+                axis.text.y = element_blank(),
                 axis.ticks = element_blank(),
                 panel.border = element_blank()
-            )
+            ) 
+            
         s <- subplot(
             hist_top, empty, p, hist_right, 
             nrows = 2, heights = c(0.2, 0.8), widths = c(0.8, 0.2), 
@@ -264,6 +259,13 @@ server <- function(input, output, session) {
     output$table <- DT::renderDataTable({
         dat3()
     })
+
+    addTooltip(session, id = "ivaf_slider", title = "Select a variant allele fraction window for PCAWG vars", trigger = "hover")
+    addTooltip(session, id = "mvaf_slider", title = "Select a variant allele fraction windows for MC3 vars", trigger = "hover")
+    addTooltip(session, id = "filts_var", title = "Select a variant with a given MC3 filter (PASS = default)", trigger = "hover")
+    addTooltip(session, id = "filts_sample", title = "Select samples with a given MC3 filter", trigger = "hover")
+    addTooltip(session, id = "downloadData", title = "Download mutation data based on your filter criteria", trigger = "hover")
+    
 }
 
 shinyApp(ui = ui, server = server)
