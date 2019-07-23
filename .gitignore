@@ -18,3 +18,5 @@ processed_data/
 figures/
 my_scratch/
 
+#Shiny.io
+shiny_app/rsconnect/
