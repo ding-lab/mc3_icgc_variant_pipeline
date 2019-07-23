@@ -3,6 +3,7 @@
 *.sh
 *.txt
 *.bed
+*.swp
 scripts/__pycache__/
 
 #Snakemake stuff

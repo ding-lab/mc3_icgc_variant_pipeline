@@ -52,3 +52,23 @@ head(global_t[order(global_t$PVAL),],20)
 
 write.table(global_t,'bestERBB4.UCEC.optim.txt',quote=F,sep="\t",row.names=F)
 
+
+
+#################So I looked at a couple non-coding things and didn't find
+
+#### BEST OF  SFTPB #####
+
+sftpb <- fread("bestSFTPB.LUAD.optim.v2.txt")
+head(sftpb[order(sftpb$PVAL),],20)
+
+
+x = "EGFL6|25975"
+y = "SFTPB.LUAD.cis.txt"
+
+look <- etest(x,y)
+
+p <- ggplot(look,aes(x=V2,y=as.numeric(as.character(t.gene.))))
+p <- p + geom_dotplot(binaxis="y",stackdir="center")
+p
+
+
