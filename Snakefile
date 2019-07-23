@@ -861,6 +861,19 @@ rule snp_tnp_indel_figure:
         Rscript --quiet --vanilla {input.dnpfig} {input.full} {output.snpbar}
         '''
 
+rule lowVAFexome_keys:
+    input:
+        full='output/full_cleaned.tsv',
+        tcgaUniq='scripts/make_tcgaOnly.R'
+        can299=config['CANCER_299']
+    output:
+        tcgaOnly='processed_data/advantagesOfExome.txt'
+    shell:
+        '''
+        Rscript --quiet --vanilla {input.tcgaUniq} {input.full} {input.can299} {output.tcgaOnly}
+        '''
+
+    
 #rule all_figures:
 #    input: 
 #        rules.upSetR_olap_figure.output
