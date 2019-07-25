@@ -20,7 +20,7 @@ WHERE e.Tumor_Sample_Barcode IS NULL;
 
 .headers on
 .separator "\t"
-.output full.tsv
+.output output/full.tsv
 .nullvalue "NA"
 SELECT * FROM full
 EOF;

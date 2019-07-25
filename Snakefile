@@ -2,24 +2,19 @@ configfile: 'config.yaml'
 
 from pathlib import Path
 
-GENCODE_PROTEIN_CODING_BED = 'annotations/gencode.proteincoding.known.gene.bed'
-
-#If available
-CONTROLLED_MAF = ''
-
+# Path to the WES based MAF (TCGA) and WGS based MAF (ICGC)
 EXOME_MAF = config['EXOME_MAF']
 GENOME_MAF = config['GENOME_MAF']
 
 # Set up GENOME MAPPING FOR MAF
 GENOME_ALIQUOT_TO_PCAWG_DONORID = {}
-with open(config['GENOME_ALIQUOT_INFO']) as f: 
+with open(config['GENOME_ALIQUOT_INFO']) as f:
     header = next(f)
-    for line in f: 
+    for line in f:
         _, __, submitter_donor_id, donor_id, _____, aliquot_id, *_ = line.rstrip().split('\t')
-        GENOME_ALIQUOT_TO_PCAWG_DONORID[aliquot_id] = donor_id 
+        GENOME_ALIQUOT_TO_PCAWG_DONORID[aliquot_id] = donor_id
 
-
-# Set up EXOME MAPPING FOR WIGS 
+# Set up EXOME MAPPING FOR WIGS
 EXOME_ALIQUOT_TO_ID = {}
 with open(config['EXOME_ALIQUOT_INFO']) as f:
     header = next(f)
@@ -27,7 +22,7 @@ with open(config['EXOME_ALIQUOT_INFO']) as f:
         _, __, aliquot_id, ____, _____, exome_id, *_ = line.rstrip().split('\t')
         EXOME_ALIQUOT_TO_ID[aliquot_id] = exome_id
 
-# Set up the EXOME 2 GENOME MAPPING
+# Set up the mapping between exome and genome IDs 
 EXOME_SAMPLE_IDS_TO_GENOME = {}
 GENOME_SAMPLE_IDS_TO_EXOME = {}
 
@@ -35,16 +30,14 @@ with open(config['OVERLAPPED_SAMPLE_INFO']) as f:
     header = next(f)
     for line in f:
         pcawg_aliquot, mc3_aliquot, exome_id, genome_id = line.rstrip().split('\t')
- #       if exome_id in SUBSETS: 
         EXOME_SAMPLE_IDS_TO_GENOME[exome_id] = GENOME_ALIQUOT_TO_PCAWG_DONORID[pcawg_aliquot]
         GENOME_SAMPLE_IDS_TO_EXOME[GENOME_ALIQUOT_TO_PCAWG_DONORID[pcawg_aliquot]] = exome_id
-
 
 # Find all the wigs and map them from their exome id.
 EXOME_SAMPLE_IDS_TO_WIG = {}
 for pth in Path(config['EXOME_WIG_DIR']).glob('*.coverage.wig.txt.gz'):
     aliquot_id_0, *_, aliquot_id_1, aliquot_id_2 = pth.name.split('.', 1)[0].split('_')
-    exome_id = EXOME_ALIQUOT_TO_ID.get(aliquot_id_0) or  EXOME_ALIQUOT_TO_ID.get(aliquot_id_1) or EXOME_ALIQUOT_TO_ID.get(aliquot_id_2)
+    exome_id = EXOME_ALIQUOT_TO_ID.get(aliquot_id_0) or EXOME_ALIQUOT_TO_ID.get(aliquot_id_1) or EXOME_ALIQUOT_TO_ID.get(aliquot_id_2)
     if exome_id is not None:
         EXOME_SAMPLE_IDS_TO_WIG[exome_id] = str(pth)
 
@@ -57,19 +50,17 @@ for pth in Path(config['GENOME_WIG_DIR']).glob('*.coverage.gz'):
         if exome_id is not None:
             GENOME_SAMPLE_IDS_TO_WIG[exome_id] = str(pth)
 
-#TWO SAMPLES ARE MISSING COVERAGE FILES 
-#      1 TCGA-B5-A11I-01A-11D-A10M-09
-#      1 TCGA-B6-A0RT-01A-21D-A099-09
+# Currently 2 samples miss their coverage files:
+# TCGA-B5-A11I-01A-11D-A10M-09 and TCGA-B6-A0RT-01A-21D-A099-09
 
-###FOR CAD PLOTS#### 
+# For CADD plots
 CADDVARS=["cHmmBivFlnk","cHmmEnhBiv","cHmmEnhG","cHmmEnh","cHmmHet","cHmmQuies","cHmmReprPC","cHmmReprPCWk","cHmmTssAFlnk","cHmmTssA","cHmmTssBiv","cHmmTxFlnk","cHmmTx","cHmmTxWk","cHmmZnfRpts","CpG","dnaHelT","dnaMGW","dnaProT","dnaRoll","EncExp","EncH3K27Ac","EncH3K4Me1","EncH3K4Me3","EncNucleo","EncOCCombPVal","EncOCctcfPVal","EncOCctcfSig","EncOCDNasePVal","EncOCDNaseSig","EncOCFairePVal","EncOCFaireSig","EncOCmycPVal","EncOCmycSig","EncOCpolIIPVal","EncOCpolIISig","ESP_AFR","ESP_AF","ESP_EUR","fitConsc","GC","GerpN","GerpRSpval","GerpRS","GerpS","mamPhCons","mamPhyloP","mapAbility20bp","mapAbility35bp","mirSVR_E","mirSVR_Score","motifDist","motifEScoreChng","PHRED","PolyPhenVal","priPhCons","priPhyloP","RawScore","relcDNApos","relCDSpos","relProts","scoreSegDup","SIFTval","TFBSPeaksMax","TG_AFR","TG_AF","TG_AMR","TG_ASN","TG_EUR","verPhCons","verPhyloP"]
 
 
-
-
-#These rules take wigs and puts them into an exome regions only BED file format. 
+#These rules take wigs and puts them into an exome regions only BED file format.
 rule convert_exome_wig_to_bed:
-    input: 
+    """Convert one WIG to BED and subset to be within ROI."""
+    input:
         wig=lambda wildcards: EXOME_SAMPLE_IDS_TO_WIG[wildcards.exome_id],
         myroi=config['COMBINED_ROI_BED'],
 
@@ -87,7 +78,8 @@ rule all_exome_beds:
 
 
 rule convert_genome_wig_to_bed:
-    input: 
+    """Convert one exome WIG to BED and subset to be within ROI."""
+    input:
         wig=lambda wildcards: GENOME_SAMPLE_IDS_TO_WIG[wildcards.exome_id],
         myroi=config['COMBINED_ROI_BED'],
 
@@ -95,7 +87,7 @@ rule convert_genome_wig_to_bed:
     shell:
         "gunzip -c {input.wig} | tr -s \"\n\" | wig2bed -d | bedtools intersect -a stdin -b {input.myroi} | python scripts/condenseBed2Wig.py > {output}"
 
-#This step missed a couple ids that I need to put back 
+# This step missed a couple ids that I need to put back
 # gunzip -c /diskmnt/Datasets/PCAWG/Coverage/compressed_coverage_tracks/42de1441-6f3c-4b4d-b8b8-ad91e4b1dbe2.coverage.gz | tr -s '\n' | wig2bed -d | bedtools intersect -a stdin -b /diskmnt/Projects/ICGC_MC3/Reduction_Beds/combined.bitgt.gencode19.merged.bed | python scripts/condenseBed2Wig.py > ../Coverage_Reduction_Genome/TCGA-B5-A11G-01A-13D-A122-09.bed
 
 
@@ -108,9 +100,7 @@ rule all_genome_beds:
     input: expand(str(Path(config['GENOME_WIG_BED_DIR'], '{exome_id}.bed')), exome_id=[x for x in GENOME_SAMPLE_IDS_TO_EXOME.values() if x not in G_WIG_BLACKLIST])
 
 
-
-
-#Reduce to samples STEP 1 
+# Reduce to samples STEP 1
 rule reduce_exome_maf:
     input: EXOME_MAF
     output: 'processed_data/exome.maf'
@@ -136,8 +126,8 @@ rule reduce_genome_maf:
     input: GENOME_MAF
     output: 'processed_data/genome.maf'
     run:
-        with open(output[0],"w") as g:
-            with open(input[0],"r") as f:
+        with open(output[0], "w") as g:
+            with open(input[0], "r") as f:
                 ghead = f.readline()[:-1].split("\t")
                 for line in f:
                     l = line[:-1].split("\t")
@@ -149,7 +139,7 @@ rule reduce_genome_maf:
                         g.write("\n")
 
 
-#Get the orginal header to pase on later 
+# Get the original header to pase on later
 rule get_orig_maf_header_exome:
     input: EXOME_MAF
     output: 'processed_data/exome.maf.header'
@@ -175,7 +165,7 @@ rule get_orig_maf_header_genome:
                 g.write("\t".join(ghead))
 
 
-#Reduce to broad target bed
+# Reduce to broad target bed STEP 2
 rule broadbed_exome:
     input:
         maf='processed_data/exome.maf',
@@ -195,7 +185,8 @@ rule broadbed_genome:
         "bedtools intersect -a {input.maf} -b {input.bed} -wa | "
         "sort -u > {output}"
 
-#Reduce to the gencode 19 exon regions 
+
+# Reduce to the gencode 19 exon regions STEP 3
 rule gafbed_exome:
     input:
         maf='processed_data/exome.broadbed.maf',
@@ -215,9 +206,10 @@ rule gafbed_genome:
         "bedtools intersect -a {input.maf} -b {input.bed} -wa | "
         "sort -u > {output}"
 
-#Split up mutations by sample nice AWK command
+
+# Split up mutations by sample nice AWK command
 rule split_exome_maf:
-    input: rules.gafbed_exome.output 
+    input: rules.gafbed_exome.output
     output:
         expand(
             'processed_data/GAFexon/{sample_exome_id}.exome.broadgaf.maf',
@@ -245,7 +237,8 @@ rule split_genome_maf:
         }}' {input}
         """
 
-#These steps take reduce the variants by resiprocol wig files MC3 by PCAWG and PCAWG by MC3 .
+# STEP 4: reduce the variants by reciprocal wig files,
+# e.g., MC3 variants by PCAWG wig and PCAWG variants by MC3 wig.
 rule reduce_exome_maf_low_coverage_wig:
     """
     Take split exome MAF and remove any variants not in whole exome wig
@@ -255,7 +248,7 @@ rule reduce_exome_maf_low_coverage_wig:
     """
     input:
         exome_maf='processed_data/GAFexon/{exome_id}.exome.broadgaf.maf',
-        genome_wig_bed=str(Path(config['GENOME_WIG_BED_DIR'], '{exome_id}.bed')),
+        genome_wig_bed=str(Path(config['GENOME_WIG_BED_DIR'], '{exome_id}.bed'))
     output:
         'processed_data/GAFexonReduced/{exome_id}.broadgaf.wig.exome.reduced.maf'
     shell:
@@ -282,11 +275,11 @@ rule reduce_genome_maf_low_coverage_wig:
         'python scripts/reduceMAFusingWIG.py {input.genome_maf} {input.exome_wig_bed} genome > {output}'
 
 
-# Concatenate all the reduced exome and genome MAFs separately after reciprocol
+# Concatenate all the reduced exome and genome MAFs together 
 rule merge_exome_wig_reduced_exome_mafs:
     input:
         expand(
-            'processed_data/GAFexonReduced/{exome_id}.broadgaf.wig.exome.reduced.maf', 
+            'processed_data/GAFexonReduced/{exome_id}.broadgaf.wig.exome.reduced.maf',
             exome_id=[x for x in GENOME_SAMPLE_IDS_TO_EXOME.values() if x not in G_WIG_BLACKLIST],
         )
     output:
@@ -309,11 +302,11 @@ rule merge_exome_wig_reduced_genome_mafs:
 #I was able to find WIGS For 745 of the 747 samples. These next two steps are irrelevant
 #rule genome_wig_to_bed:
 
-#However I did notice an interesting situation where BROAD didn't make a call but other tools did and broad said that the variant wasn't covered. 
+#However I did notice an interesting situation where BROAD didn't make a call but other tools did and broad said that the variant wasn't covered.
 
-#This will be an interesting exercise. 
+#This will be an interesting exercise.
 
-#So I'm going to do a self reduction of the Mutations based on coverage that should work everything out. We'll have to see the difference between the two groups to get things done. 
+#So I'm going to do a self reduction of the Mutations based on coverage that should work everything out. We'll have to see the difference between the two groups to get things done.
 rule self_reduce_exome:
     input:
         exome_maf='processed_data/GAFexonReduced/{exome_id}.broadgaf.wig.exome.reduced.maf',
@@ -333,14 +326,14 @@ def retrieve_genome_wig_bed(wildcards):
     ))
     return out
 
-#This step reduces the genome and exome findings by the genome wiggle files 
+# STEP 5: reduce the genome and exome findings by the genome wiggle files
 rule self_reduce_genome:
     input:
         genome_maf='processed_data/GAFexonReduced/{genome_id}.broadgaf.wig.genome.reduced.maf',
         genome_wig_bed=retrieve_genome_wig_bed,
         exome_reduced='processed_data/exome.broadbed.gafe.wigs.maf'
     output:
-        'processed_data/GAFselfReduced/{genome_id}.broadgaf.wig.genome.reduced.self.maf'   
+        'processed_data/GAFselfReduced/{genome_id}.broadgaf.wig.genome.reduced.self.maf'
     shell:
         'python scripts/reduceMAFusingWIG.py {input.genome_maf} {input.genome_wig_bed} genome > {output}'
 
@@ -357,9 +350,8 @@ rule merge_self_exome:
         'cat {input} > {output}'
 
 
-
 rule merge_self_genome:
-    input: 
+    input:
         expand(
             'processed_data/GAFselfReduced/{genome_id}.broadgaf.wig.genome.reduced.self.maf',
             genome_id=[x for x in GENOME_SAMPLE_IDS_TO_EXOME.keys() if GENOME_SAMPLE_IDS_TO_EXOME[x] not in G_WIG_BLACKLIST],
@@ -370,7 +362,7 @@ rule merge_self_genome:
         'cat {input} > {output}'
 
 
-#The next two rules can be used for to generate sorted SNV only mafs if you want. 
+#The next two rules can be used for to generate sorted SNV only mafs if you want.
 rule reduce_maf_low_genome_wig_uniq_snv:
     # Uniqe and sort the MAF
     input: 'processed_data/{seq_type}.broadbed.gafe.wigs.self.maf'
@@ -381,21 +373,6 @@ rule reduce_maf_low_genome_wig_uniq_snv:
             | sort -u -T /diskmnt/Projects/ICGC_MC3/tmp -S 1G | sort -k1,1 -k2,2n -T /diskmnt/Projects/ICGC_MC3/tmp -S 1G \
             > {output}
         """
-
-
-rule bdeolap_nchar:
-    # Overlapp
-    # readme.txt:66 and 68
-    # Not needed in current version (20180725)
-    input:
-        sample_mapping=config['OVERLAPPED_SAMPLE_INFO'],
-        py_script='scripts/bedolap.{nchar}.py',
-        exome_maf='processed_data/exome.broadbed.gafe.wigs.snv.uniq.self.maf',
-        genome_maf='processed_data/genome.broadbed.gafe.wigs.snv.uniq.self.maf',
-    output:
-        'output/e.g.mymerge.{nchar}.maf'
-    shell:
-        'python {input.py_script} {input.sample_mapping} {input.exome_maf} {input.genome_maf} > {output}'
 
 
 #This step makes the SQLite data base
@@ -411,31 +388,29 @@ rule make_sqlite_db:
         genome_pipe='processed_data/genome.pipe',
         sql='scripts/make_db.sql'
     output:
-        'output/mc3_icgc.sqlite'
+        db='output/mc3_icgc.sqlite'
     shell:
         '''
         sed -e 's#\tSTRAND\t#\tSTRAND_VEP\t#g' < {input.exome_maf_header} > processed_data/exome.maf.for_db.header
         mkfifo {params.exome_pipe}
         cut -f 1-111 {input.exome_maf} > {params.exome_pipe} &
-        
+        mkfifo {params.genome_pipe}
         cut -f 1-43 {input.genome_maf} > {params.genome_pipe} &
         sqlite3 {output} < {params.sql}
 
-        rm {params.exome_pipe} {params.genome_pipe}
+        rm -f {params.exome_pipe} {params.genome_pipe}
         '''
 
 #This is the rule that does the merging
 rule make_analysis_file:
-    input: 
-        db='output/mc3_icgc.sqlite',
+    input:
+        db=rules.make_sqlite_db.output['db'],
         sql_script='scripts/gen_full.sql'
     output:
         'output/full.tsv'
     shell:
         '''
         sqlite3 {input.db} < {input.sql_script}
-        
-        mv full.tsv output
         '''
 
 #This script cleans up duplicated, and other merge products
@@ -448,17 +423,18 @@ rule clean_analysis_file:
     shell:
         '''
         Rscript --vanilla {input.Rscript} {input.full} {output}
-        ''' 
-#This should bring all the other rules together. <<Currently not operating>> 
+        '''
+
+
 rule all:
-    input: rules.clean_analysis_file.output
+    input: rules.clean_analysis_file.output, rules.make_analysis_file.output
 
 
 #Below are the various rules and analysis algorithms used to generate figures
 
 #Generates an upsetR plot
 rule upSetR_olap_figure:
-    input: 
+    input:
         prepScript='scripts/genCallerMatrix.py',
         makeUpsetR='scripts/make_upset.R',
         full='output/full_cleaned.tsv'
@@ -469,8 +445,8 @@ rule upSetR_olap_figure:
     shell:
         '''
         python {input.prepScript} {input.full} > {output.datPrep}
-       
-        Rscript --quiet --vanilla {input.makeUpsetR} {output.datPrep} {output.upsetPDF} {output.upsetPDFall} 
+
+        Rscript --quiet --vanilla {input.makeUpsetR} {output.datPrep} {output.upsetPDF} {output.upsetPDFall}
         '''
 
 #This is the gut for generating the figure found in MAFit
@@ -482,7 +458,7 @@ rule landscape_sample_figure:
     output:
         lanPDF='figures/landscape.sampleconcordance.pdf',
         lanNOTES='figures/landscape.sampleconcordance.notes.txt'
-    shell: 
+    shell:
          '''
          Rscript --quiet --vanilla {input.makeLanR} {input.full} {input.id_similar} {output.lanPDF} {output.lanNOTES}
          '''
@@ -494,11 +470,11 @@ rule landscape_cancer_figure:
         makeCancerR='scripts/make_cancer.R',
         full='output/full_cleaned.tsv',
         idcancer=config['TCGA12_CANCER']
-        
+
     output:
         datPrep='processed_data/data.4.cancerOLAP.txt',
         lanCancerPDF='figures/landscapteByCancertype.pdf'
-       
+
     shell:
         '''
         python {input.prepScript} {input.full} > {output.datPrep}
@@ -511,7 +487,7 @@ rule simulation_figure:
     input:
         full='output/full_cleaned.tsv',
         makeSimR='scripts/make_simulations.R',
-        
+
     output:
         datPrep='processed_data/pp3.vaf.txt',
         simPDF='figures/WMeyerson_VAFpredictsRecoveryRate.pdf'
@@ -519,13 +495,13 @@ rule simulation_figure:
     shell:
         '''
         cat {input.full} | cut -f 1-2,112-113,6-9,117-120,12,37,38,123,148,149,152 > {output.datPrep}
-        
+
         Rscript --vanilla {input.makeSimR} {output.datPrep} {input.full} {output.simPDF}
         '''
 
 #Generates the clonality figures
 rule clonality_figure:
-#So at this step just run this in the GenFigures Clonality section with the files that I need. Anywho. 
+#So at this step just run this in the GenFigures Clonality section with the files that I need. Anywho.
     input:
         makeClone='scripts/make_clonality.R',
         fullClone='/diskmnt/Projects/ICGC_MC3/Gen_Figures/Clonality_Figure/Processed_data/Full_Clonality.tsv'
@@ -535,7 +511,7 @@ rule clonality_figure:
 
     shell:
         '''
-        Rscript --quiet --vanilla {input.makeClone} {input.fullClone} {output.gClonePDF} {output.eClonePDF} 
+        Rscript --quiet --vanilla {input.makeClone} {input.fullClone} {output.gClonePDF} {output.eClonePDF}
         '''
 
 #Generates the VAF figures that are characterized by different VAF bins
@@ -550,7 +526,9 @@ rule vaf_figure:
         Rscript --quiet --vanilla {input.makeVAFbins} {input.full} {output.vafBinPDF}
 
         '''
-#Produses a figure that looks into the MC3 controlled MAF to identity filters MC3 variants that were replicated by ICGC
+
+
+# Produce a figure that looks into the MC3 controlled MAF to identity filters MC3 variants that were replicated by ICGC
 rule inverse_controlled_processing:
     input:
         full='output/full_cleaned.tsv',
@@ -575,22 +553,24 @@ rule single_caller_figure:
     shell:
         '''
         Rscript --quiet --vanilla {input.plotR} {input.mc3control} {output.singlePDF}
-        '''       
+        '''
 #MC3 produced many variant call filters. This is how we approached this issue
 rule filter_figure:
-    input: 
+    input:
         likertProc="scripts/likert_reformat.py",
         full='output/full_cleaned.tsv',
         makelikert="scripts/make_likerFilter.R",
-    output: 
+    output:
         likert='processed_data/data.4.likert.txt',
         likertPlot='figures/MC3filtersInPCAWG.likert.pdf'
-    shell: 
+    shell:
         '''
         python {input.likertProc} {input.full} > {output.likert}
 
         Rscript --quiet --vanilla {input.makelikert} {output.likert} {output.likertPlot}
         '''
+
+
 #This is processing step to add CADD annotations to the mutations
 rule CADD_annotation_split:
     input:
@@ -605,6 +585,8 @@ rule CADD_annotation_split:
         '''
         Rscript --quiet --vanilla {input.splitfull} {input.full} {output.o1} {output.o2} {output.o3} {output.o0}
         '''
+
+
 #And applied using VEP
 rule CADD_annotation_vep:
     input:
@@ -616,7 +598,7 @@ rule CADD_annotation_vep:
         docker run --rm -t -i -u `id -u`:`id -g` -v /diskmnt/Datasets/VEP:/home/vep/.vep -v /diskmnt/Datasets/CADD:/annotations/CADD -v $PWD:/data ensemblorg/ensembl-vep:release_91.3 vep --cache --offline --fork 4 --minimal --pick --assembly GRCh37  -i /data/{input} -o /data/{output} --plugin CADD,/annotations/CADD/whole_genome_SNVs_inclAnno.tsv.gz
         '''
 
-#This step combines the two previous steps. 
+#This step combines the two previous steps.
 rule combine_CADD:
     input:
         tocat=expand('processed_data/{cadd}.psuedo.annotated.txt', cadd=[i for i in ["vars_chr1-chr6","vars_chr6-chr12","vars_chr12-chrY"]]),
@@ -630,24 +612,24 @@ rule combine_CADD:
 
 #And this produces figures looking into GC content using CADD
 rule CADD_plot:
-    input: 
+    input:
         full='output/full_cleaned.tsv',
         makeCADD='scripts/make_cadd.R',
         caddanno='processed_data/CADD.annotations.fullvars.txt',
         unique_p='processed_data/unique_icgc.notin.mc3_controlled.txt',
-    output: 
+    output:
         dynamic("figures/CADD/{caddvars}_PCAWG_unique.pdf")
-    shell: 
+    shell:
         '''
         Rscript --quiet --vanilla {input.makeCADD} {input.full} {input.unique_p} {input.caddanno} figures/CADD/
         '''
-   
+
 #This will bring the previous 3 rules into one figure
 rule CADD_figure:
     input: dynamic("figures/CADD/{caddvars}_PCAWG_unique.pdf")
 
 
-#The next 4 rulls look at various aspects of incorporating CADD stats to these mutations
+#The next 4 rules look at various aspects of incorporating CADD stats to these mutations
 rule CADD_plot_depth:
     input:
         full='output/full_cleaned.tsv',
@@ -681,7 +663,7 @@ rule CADD_plot_depth_sd:
 rule CADD_sd:
     input: dynamic("figures/CADD/{caddvars}_depth_sd.pdf")
 
-#This is a figure not shown in the manuscript that is a general gene model to determine if there are systematic differences at the beginning, end or middle of a gene. 
+#This is a figure not shown in the manuscript that is a general gene model to determine if there are systematic differences at the beginning, end or middle of a gene.
 rule general_gene_annotate:
 #Note that this takes a different python environment that Liang-Bo set up.
     input:
@@ -694,8 +676,8 @@ rule general_gene_annotate:
         gen_gene="processed_data/general_gene_model_annotation.tsv.gz",
     shell:
         '''
-        {input.enviroPython} {input.annotate} {input.gencode} {input.full} 2> {output.annolog} | gzip -c > {output.gen_gene}         
-        '''        
+        {input.enviroPython} {input.annotate} {input.gencode} {input.full} 2> {output.annolog} | gzip -c > {output.gen_gene}
+        '''
 #Grouped with rule above
 rule general_gene_figure:
     input:
@@ -712,7 +694,7 @@ rule general_gene_figure:
         gunzip {input.gen_gene}
 
         Rscript --quiet --vanilla {input.makeGenGene} {input.full} {output.gen_gene_unzip} {input.unique_p} {output.ggProportionPDF} {output.ggCountPDF}
-        ''' 
+        '''
 
 #This is a cheap way to generate a sunburst plot using R
 rule sunburst_figure:
@@ -735,7 +717,7 @@ rule sunburst_figure:
 
         Rscript --quiet --vanilla {input.makeSunburst} {output.rem_by_covg} {input.pseudo} {input.can299} {output.utr3_canPDF} {output.utr5_canPDF} {output.miss_canPDF} {output.sunburstPDF}
         '''
-# Next few rules look at how CADD was integrated into this manuscript. 
+# Next few rules look at how CADD was integrated into this manuscript.
 rule CADD_covg_split:
     input:
         rem_by_covg='processed_data/removed.by.coverage.genome.maf',
@@ -745,7 +727,7 @@ rule CADD_covg_split:
         o1='processed_data/vars_chr1-chr6.covg.vcf',
         o2='processed_data/vars_chr6-chr12.covg.vcf',
         o3='processed_data/vars_chr12-chrY.covg.vcf'
-    shell: 
+    shell:
         '''
         Rscript --quiet --vanilla {input.splitcovg} {input.rem_by_covg} {output.o1} {output.o2} {output.o3} {output.o0}
         '''
@@ -806,9 +788,9 @@ rule CADD_covg:
     input: dynamic("figures/CADD/{caddvars}_covg.pdf")
 
 
-#This is just a side script for convertying bed files to wiggle files.
+#This is just a side script for converting bed files to wiggle files.
 rule bed_wigs_genome:
-    input: 
+    input:
         bed=str(Path(config['GENOME_WIG_BED_DIR'], '{exome_id}.bed')),
         bed2wig='scripts/bed2fixedwig.py'
     output:
@@ -819,8 +801,8 @@ rule bed_wigs_genome:
 
         '''
 #We wanted to look at SMG using MuSiC to determine if we could pick up some non-coding hits. The next few rule prep input for that effort
-rule gen_SMG_wigs: 
-    input: 
+rule gen_SMG_wigs:
+    input:
         expand(str(Path(config['GENOME_REDUCED_WIG'], '{exome_id}.wig')), exome_id=[x for x in GENOME_SAMPLE_IDS_TO_EXOME.values() if x not in G_WIG_BLACKLIST])
 
 
@@ -835,20 +817,20 @@ rule subset_MAF_byCancer:
     shell:
         '''
         Rscript --quiet --vanilla {input.splitMAF} {input.maf} {input.samplemap}
-        ''' 
+        '''
 
 
 rule get_ROI:
     input:'/diskmnt/Software/bin/2020plus/data/intersection_snvbox_gafbitgt.unique.bed'
 
     output:'processed_data/SMG/input/2020plus_roi'
-        
+
     shell:
         '''
         cut -f 1-4 {input} > {output}
         '''
 
-#Look into mutation spectrum, 
+#Look into mutation spectrum,
 rule mutation_spectrum_figure:
     input:
         mc3reduced2exonsMAF='processed_data/exome.broadbed.gaf.maf',
@@ -861,7 +843,7 @@ rule mutation_spectrum_figure:
     shell:
         '''
         Rscript --quiet --vanilla {input.mkMutSpec} {input.mc3reduced2exonsMAF} {input.pcawgreduced2exonMAF} {output.mc3_mutspec} {output.pcawg_mutspec} {output.mutspec_notes}
-        ''' 
+        '''
 
 #Looking in the single, tri-nucleotide, and indel differences in these data
 rule snp_tnp_indel_figure:
@@ -887,10 +869,10 @@ rule lowVAFexome_keys:
         Rscript --quiet --vanilla {input.tcgaUniq} {input.full} {input.can299} {output.tcgaOnly}
         '''
 
-#This final bit of code, can be added to un-commented to the run many of these rules after the full_cleaned.tsv was generated. 
-    
+#This final bit of code, can be added to un-commented to the run many of these rules after the full_cleaned.tsv was generated.
+
 #rule all_figures:
-#    input: 
+#    input:
 #        rules.upSetR_olap_figure.output
 #        rules.landscape_sample_figure.output
 #        rules.landscape_cancer_figure.output
