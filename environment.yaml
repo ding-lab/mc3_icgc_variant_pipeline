@@ -1,9 +1,9 @@
-name: snake
+name: venv
 channels:
 - bioconda
-- r
-- defaults
 - conda-forge
+- defaults
+- r
 dependencies:
 - bedtools=2.26.0=0
 - dropbox=5.2.1=py36_0
