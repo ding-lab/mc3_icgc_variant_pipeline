@@ -856,11 +856,12 @@ rule snp_tnp_indel_figure:
         '''
         Rscript --quiet --vanilla {input.dnpfig} {input.full} {output.snpbar}
         '''
-#This is just looking into exome only variants
+
+# This is just looking into exome only variants
 rule lowVAFexome_keys:
     input:
         full='output/full_cleaned.tsv',
-        tcgaUniq='scripts/make_tcgaOnly.R'
+        tcgaUniq='scripts/make_tcgaOnly.R',
         can299=config['CANCER_299']
     output:
         tcgaOnly='processed_data/advantagesOfExome.txt'
