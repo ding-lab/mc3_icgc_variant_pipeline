@@ -52,19 +52,10 @@ Since the full pipeline will take substantial time to complete, it is advised to
     # Generate variant matching outputs for downstream analysis
     snakemake make_analysis_file clean_analysis_file
 
+[Snakemake]: https://snakemake.readthedocs.io/en/stable/
+
 
 ## Downstream analysis and figures generation
 All the figures in the publication can be generated via Snakemake:
 
-    snakemake upSetR_olap_figure
-    snakemake landscape_sample_figure
-    snakemake landscape_cancer_figure
-    snakemake simulation_figure
-    snakemake clonality_figure
-    snakemake vaf_figure
-    snakemake inverse_controlled_processing
-    snakemake single_caller_figure
-    snakemake filter_figure
-    snakemake CADD_figure
-
-[Snakemake]: https://snakemake.readthedocs.io/en/stable/
+    snakemake all_figures

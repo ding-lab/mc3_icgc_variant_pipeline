@@ -543,6 +543,7 @@ rule inverse_controlled_processing:
         python {input.makeControlled} {input.full} {input.mc3ControlMAF} {output.MC3controlledInPCAWG} {output.PCAWGuniqNOTinMC3} {output.PCAWGuniqInMC3}
         '''
 
+
 #Here we looked into the effects of singles variant callers
 rule single_caller_figure:
     input:
@@ -554,6 +555,8 @@ rule single_caller_figure:
         '''
         Rscript --quiet --vanilla {input.plotR} {input.mc3control} {output.singlePDF}
         '''
+
+
 #MC3 produced many variant call filters. This is how we approached this issue
 rule filter_figure:
     input:
@@ -615,7 +618,7 @@ rule CADD_plot:
     input:
         full='output/full_cleaned.tsv',
         makeCADD='scripts/make_cadd.R',
-        caddanno='processed_data/CADD.annotations.fullvars.txt',
+        caddanno=rules.combine_CADD.output[0],
         unique_p='processed_data/unique_icgc.notin.mc3_controlled.txt',
     output:
         dynamic("figures/CADD/{caddvars}_PCAWG_unique.pdf")
@@ -663,6 +666,7 @@ rule CADD_plot_depth_sd:
 rule CADD_sd:
     input: dynamic("figures/CADD/{caddvars}_depth_sd.pdf")
 
+
 #This is a figure not shown in the manuscript that is a general gene model to determine if there are systematic differences at the beginning, end or middle of a gene.
 rule general_gene_annotate:
 #Note that this takes a different python environment that Liang-Bo set up.
@@ -678,6 +682,8 @@ rule general_gene_annotate:
         '''
         {input.enviroPython} {input.annotate} {input.gencode} {input.full} 2> {output.annolog} | gzip -c > {output.gen_gene}
         '''
+
+
 #Grouped with rule above
 rule general_gene_figure:
     input:
@@ -695,6 +701,7 @@ rule general_gene_figure:
 
         Rscript --quiet --vanilla {input.makeGenGene} {input.full} {output.gen_gene_unzip} {input.unique_p} {output.ggProportionPDF} {output.ggCountPDF}
         '''
+
 
 #This is a cheap way to generate a sunburst plot using R
 rule sunburst_figure:
@@ -717,6 +724,8 @@ rule sunburst_figure:
 
         Rscript --quiet --vanilla {input.makeSunburst} {output.rem_by_covg} {input.pseudo} {input.can299} {output.utr3_canPDF} {output.utr5_canPDF} {output.miss_canPDF} {output.sunburstPDF}
         '''
+
+
 # Next few rules look at how CADD was integrated into this manuscript.
 rule CADD_covg_split:
     input:
@@ -769,6 +778,7 @@ rule covg_GC_depth_figures:
         Rscript --quiet --vanilla {input.plotr} {input.rmcovg} {input.caddcovg} {input.full} {input.pcawg_uniq} {input.caddfull} {output.gc_depth_binned} {output.density_pdf}
         '''
 
+
 rule covg_CADD_figures:
     input:
         plotr='scripts/make_gc_depth.all.R',
@@ -783,6 +793,7 @@ rule covg_CADD_figures:
         '''
         Rscript --quiet --vanilla {input.plotr} {input.rmcovg} {input.caddcovg} {input.full} {input.pcawg_uniq} {input.caddfull} {output.density_pdf} {output.gc_depth_binned}
         '''
+
 
 rule CADD_covg:
     input: dynamic("figures/CADD/{caddvars}_covg.pdf")
@@ -800,6 +811,8 @@ rule bed_wigs_genome:
         python {input.bed2wig} {input.bed} {output}
 
         '''
+
+
 #We wanted to look at SMG using MuSiC to determine if we could pick up some non-coding hits. The next few rule prep input for that effort
 rule gen_SMG_wigs:
     input:
@@ -830,6 +843,7 @@ rule get_ROI:
         cut -f 1-4 {input} > {output}
         '''
 
+
 #Look into mutation spectrum,
 rule mutation_spectrum_figure:
     input:
@@ -845,6 +859,7 @@ rule mutation_spectrum_figure:
         Rscript --quiet --vanilla {input.mkMutSpec} {input.mc3reduced2exonsMAF} {input.pcawgreduced2exonMAF} {output.mc3_mutspec} {output.pcawg_mutspec} {output.mutspec_notes}
         '''
 
+
 #Looking in the single, tri-nucleotide, and indel differences in these data
 rule snp_tnp_indel_figure:
     input:
@@ -856,6 +871,7 @@ rule snp_tnp_indel_figure:
         '''
         Rscript --quiet --vanilla {input.dnpfig} {input.full} {output.snpbar}
         '''
+
 
 # This is just looking into exome only variants
 rule lowVAFexome_keys:
@@ -870,20 +886,28 @@ rule lowVAFexome_keys:
         Rscript --quiet --vanilla {input.tcgaUniq} {input.full} {input.can299} {output.tcgaOnly}
         '''
 
-#This final bit of code, can be added to un-commented to the run many of these rules after the full_cleaned.tsv was generated.
 
-#rule all_figures:
-#    input:
-#        rules.upSetR_olap_figure.output
-#        rules.landscape_sample_figure.output
-#        rules.landscape_cancer_figure.output
-#        rules.simulation_figure.output
-#        rules.clonality_figure.output
-#        rules.vaf_figure.output
-#        rules.CADD_figure.output
-#        rules.general_gene_figure.output
-#        rules.sunburst_figure.output
-#        rules.figure_750_540_figure.output
+#This final bit of code, can be added to un-commented to the run many of these rules after the full_cleaned.tsv was generated.
+rule all_figures:
+    input:
+        rules.upSetR_olap_figure.output,
+        rules.landscape_sample_figure.output,
+        rules.landscape_cancer_figure.output,
+        rules.simulation_figure.output,
+        rules.clonality_figure.output,
+        rules.vaf_figure.output,
+        rules.inverse_controlled_processing.output,
+        rules.single_caller_figure.output,
+        rules.filter_figure.output,
+        rules.CADD_figure.output,
+        rules.CADD_depth.output,
+        rules.CADD_sd.output,
+        # rules.general_gene_figure.output,
+        rules.sunburst_figure.output,
+        rules.covg_GC_depth_figures.output,
+        rules.CADD_covg.output,
+        rules.mutation_spectrum_figure.output,
+        rules.snp_tnp_indel_figure.output
 
 
 
