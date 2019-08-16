@@ -61,7 +61,7 @@ samples <- data_tbl %>%
 
 # User interface
 ui <- fluidPage(
-    
+    img(src='MAFit_logo2.png', align = "right"),
     titlePanel("ICGC MC3 Overlap"),
     
     fluidRow(
