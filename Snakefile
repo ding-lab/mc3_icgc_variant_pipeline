@@ -886,6 +886,17 @@ rule lowVAFexome_keys:
         Rscript --quiet --vanilla {input.tcgaUniq} {input.full} {input.can299} {output.tcgaOnly}
         '''
 
+# This rule looks into Broad/Mutect and MUSE specific calls in the dataset. 
+rule museonly_figure:
+    input:
+        full='output/full_cleaned.tsv',
+        genMuse='scripts/make_museonly.R'
+    output:
+        likertmuse='figures/museOnly.pdf'
+    shell: 
+        '''
+        Rscript --quiet --vanilla {input.genMuse} {input.full} {output.likertmuse}
+        '''
 
 #This final bit of code, can be added to un-commented to the run many of these rules after the full_cleaned.tsv was generated.
 rule all_figures:
@@ -907,7 +918,8 @@ rule all_figures:
         rules.covg_GC_depth_figures.output,
         rules.CADD_covg.output,
         rules.mutation_spectrum_figure.output,
-        rules.snp_tnp_indel_figure.output
+        rules.snp_tnp_indel_figure.output,
+        rules.museonly_figure.output
 
 
 
