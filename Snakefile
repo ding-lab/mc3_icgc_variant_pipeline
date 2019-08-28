@@ -898,6 +898,44 @@ rule museonly_figure:
         Rscript --quiet --vanilla {input.genMuse} {input.full} {output.likertmuse}
         '''
 
+#This rule looks into the correlation between MutPerBP and Concordance 
+#This rule still needs to be run "by-hand"
+
+rule mutpmb_concordance_figure:
+    input:
+        prepScript='scripts/genCallerMatrix.cancer.py',
+        idcancer=config['TCGA12_CANCER'],
+        full='output/full_cleaned.tsv',
+        genCorr='scripts/make_corr.R',
+        mutimmune='data/MUTperMB.immunepaper.txt'
+    output:
+        datPrep='processed_data/data.4.cancerOLAP.txt',
+        mxcfig='figures/CancerXConcordance.pdf'
+
+    shell:
+        '''
+        python {input.prepScript} {input.full} > {output.datPrep}
+
+        Rscript --quiet --vanilla {input.genCorr} {output.datPrep} {input.idcancer} {input.mutimmine} {output.mxcfig}
+        '''
+
+
+rule barchart_overview_figure:
+#Currently variation exists for these reasons. I need to track down these variants and add them the is algorithm. VAF, (X)Sublonal, Filtering, Caller, GC content, Cancertype,
+#
+    input:
+        genAll='scripts/make_allbar.R',
+        full='output/full_cleaned.tsv',
+        fullClone='processed_data/Full_Clonality.tsv',
+    output:
+        allfig='figures/allbar.v1.pdf'
+    shell:
+        '''
+        Rscript --quiet --vanilla {input.genCorr} 
+        '''
+
+
+
 #This final bit of code, can be added to un-commented to the run many of these rules after the full_cleaned.tsv was generated.
 rule all_figures:
     input:
@@ -919,8 +957,11 @@ rule all_figures:
         rules.CADD_covg.output,
         rules.mutation_spectrum_figure.output,
         rules.snp_tnp_indel_figure.output,
-        rules.museonly_figure.output
+        rules.museonly_figure.output,
+        rules.mutpmb_concordance_figure.output,
+        rules.barchart_overview_figure.output
 
+        
 
 
 

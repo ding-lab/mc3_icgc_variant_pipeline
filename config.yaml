@@ -20,7 +20,7 @@ GENOME_MAF: /diskmnt/Projects/ICGC_MC3/Data/October_2016_whitelist_2583.snv_mnv_
 GOOD_WIGS: /diskmnt/Projects/ICGC_MC3/Data/good.wigs.txt 
 COMBINED_ROI_BED: /diskmnt/Projects/ICGC_MC3/Reduction_Beds/combined.bitgt.gencode19.merged.bed
 ID_SIMILAR01: /diskmnt/Projects/ICGC_MC3/ID_Mapping/id_similarity.exome.genome.txt
-TCGA12_CANCER: /diskmnt/Projects/ICGC_MC3/ID_Mapping/PCA.sample.cancer.txt
+TCGA12_CANCER: id_mapping/PCA.sample.cancer.txt
 MC3_CONTROLLED: /diskmnt/Datasets/TCGA/MC3/mc3.v0.2.8.CONTROLLED.CT.maf
 PSEUDO_GENES_LIST: /diskmnt/Projects/ICGC_MC3/Reduction_Beds/pseudogenes.txt
 CANCER_299: /diskmnt/Projects/ICGC_MC3/Data/cancer.gene.299.txt

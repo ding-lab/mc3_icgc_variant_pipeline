@@ -18,6 +18,7 @@ annotations/
 processed_data/
 figures/
 my_scratch/
+data/
 
 #Shiny.io
 shiny_app/rsconnect/
