@@ -91,8 +91,10 @@ ui <- fluidPage(
     
     fluidRow(
         column(4, offset = 2, selectInput("bar", "TCGA-Barcode", c("All", samples))),
-        column(4, selectInput("gene", "HugoSymbol", 
-                              c("All", sort(unique(c(data_tbl$Hugo_Symbol, data_tbl$"Hugo_Symbol:1"))))
+        column(4, selectizeInput("gene", "HugoSymbol", 
+                              c("Type gene symbol", 
+                                sort(unique(c(data_tbl$Hugo_Symbol, data_tbl$"Hugo_Symbol:1")))),
+                              options = list(maxOptions = 25000)
         ))
     ),
     
@@ -166,7 +168,7 @@ server <- function(input, output, session) {
     
     dat3 <- reactive({
         tab_data <- dat2()
-        if (input$bar == "All" & input$gene == "All" & nrow(tab_data) >= 2000)  {
+        if (input$bar == "All" & input$gene == "Type gene symbol" & nrow(tab_data) >= 2000 )  {
             # Show a truncated table if the current table contains too many rows
             tab_data <- data.frame(
                 rbind(
@@ -179,7 +181,7 @@ server <- function(input, output, session) {
                 tab_data <- tab_data %>% 
                     filter(startsWith(mc3_exome_barcode, input$bar))
             }
-            if (input$gene != "All") {
+            if (input$gene != "Type gene symbol") {
                 tab_data <- tab_data %>% 
                     filter(Hugo_Symbol == input$gene | `Hugo_Symbol:1` == input$gene)
             }
@@ -257,7 +259,8 @@ server <- function(input, output, session) {
     # is triggered by input$myslider this table will update
     # any time that input$myslider updates
     output$table <- DT::renderDataTable({
-        dat3()
+        datatable(dat3(), filter="top", selection="multiple", escape=FALSE, 
+                  options = list(sDom  = '<"top">lrt<"bottom">ip'))
     })
 
     addTooltip(session, id = "ivaf_slider", title = "Select a variant allele fraction window for PCAWG vars", trigger = "hover")

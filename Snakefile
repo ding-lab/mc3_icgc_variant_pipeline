@@ -927,6 +927,8 @@ rule barchart_overview_figure:
         genAll='scripts/make_allbar.R',
         full='output/full_cleaned.tsv',
         fullClone='processed_data/Full_Clonality.tsv',
+        cantype=config['TCGA12_CANCER']
+        caddfull='processed_data/CADD.annotations.fullvars.txt'
     output:
         allfig='figures/allbar.v1.pdf'
     shell:
@@ -960,25 +962,3 @@ rule all_figures:
         rules.museonly_figure.output,
         rules.mutpmb_concordance_figure.output,
         rules.barchart_overview_figure.output
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
