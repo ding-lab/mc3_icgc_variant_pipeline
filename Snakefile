@@ -937,7 +937,20 @@ rule barchart_overview_figure:
         '''
 
 
-
+rule subtype_figure:
+    input:
+        genSubtype='scripts/make_subtype.R',
+        clinical='data/clinical_PANCAN_patient_with_followup.tsv',
+        idmap='data/MC3_PCAWG_Matched.ids.v3.txt'
+    output:
+        figbias='figures/SelectionBias.v2.pdf',
+        figlegend='SelectionBias.v1.withlegend.pdf',
+        figolap='CancertypesInOverlap.v1.pdf',
+        supptbl='processed_data/selection.bias.v2.supplementary.txt' 
+    shell:
+        '''
+        Rscript --quiet --vanilla {input.genSubtype} {input.clinical} {input.idmap} {output.figbias} {output.figlegend} {output.figolap} {output.supptbl}
+        '''
 #This final bit of code, can be added to un-commented to the run many of these rules after the full_cleaned.tsv was generated.
 rule all_figures:
     input:
@@ -961,4 +974,5 @@ rule all_figures:
         rules.snp_tnp_indel_figure.output,
         rules.museonly_figure.output,
         rules.mutpmb_concordance_figure.output,
-        rules.barchart_overview_figure.output
+        rules.barchart_overview_figure.output,
+        rules.subtype_figure.output
